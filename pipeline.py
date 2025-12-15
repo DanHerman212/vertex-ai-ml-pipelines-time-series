@@ -96,8 +96,8 @@ def gru_pipeline(
     )
 
     # Configure GPU resources
-    train_gru_task.set_cpu_limit('4')
-    train_gru_task.set_memory_limit('16G')
+    # train_gru_task.set_cpu_limit('4')
+    # train_gru_task.set_memory_limit('16G')
     # train_gru_task.set_gpu_limit(1)
     # set_accelerator_type seems to be causing protobuf type errors in this environment.
     # We will rely on set_gpu_limit(1). Vertex AI often defaults to T4.
