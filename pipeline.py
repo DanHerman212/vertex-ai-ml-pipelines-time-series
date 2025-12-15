@@ -35,12 +35,11 @@ def extract_bq_data(
 
 @dsl.container_component
 def preprocess_component(
-    training_image_uri: str,
     input_csv: dsl.Input[dsl.Dataset],
     output_csv: dsl.Output[dsl.Dataset],
 ):
     return dsl.ContainerSpec(
-        image=training_image_uri,
+        image='us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/gru-training:v1',
         command=["python", "src/preprocess.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -50,13 +49,12 @@ def preprocess_component(
 
 @dsl.container_component
 def train_gru_component(
-    training_image_uri: str,
     input_csv: dsl.Input[dsl.Dataset],
     bucket_name: str,
     model_dir: dsl.Output[dsl.Model]
 ):
     return dsl.ContainerSpec(
-        image=training_image_uri,
+        image='us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/gru-training:v1',
         command=["python", "src/train_gru.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -84,13 +82,11 @@ def gru_pipeline(
     
     # Step 2: Preprocess
     preprocess_task = preprocess_component(
-        training_image_uri=training_image_uri,
         input_csv=extract_task.outputs["output_dataset"]
     )
     
     # Step 3: Train GRU
     train_gru_task = train_gru_component(
-        training_image_uri=training_image_uri,
         input_csv=preprocess_task.outputs["output_csv"],
         bucket_name=bucket_name
     )
