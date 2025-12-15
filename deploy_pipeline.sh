@@ -38,7 +38,7 @@ BQ_QUERY=${BQ_QUERY:-"select
   arrival_date,
   duration,
   mbt
-from `mta_historical_v3.ml_cleaned`
+from \`mta_historical_v3.ml_cleaned\`
 where extract(year from arrival_date) >= 2024"}
 
 # Derived Variables
