@@ -96,6 +96,12 @@ def gru_pipeline(
         "--model_dir", train_gru_task.outputs["model_dir"].path
     ])
 
+    # Configure GPU resources
+    train_gru_task.set_cpu_limit('4')
+    train_gru_task.set_memory_limit('16G')
+    train_gru_task.set_gpu_limit(1)
+    train_gru_task.add_node_selector_constraint('cloud.google.com/gke-accelerator', 'nvidia-tesla-t4')
+
 if __name__ == "__main__":
     compiler.Compiler().compile(
         pipeline_func=gru_pipeline,

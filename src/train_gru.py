@@ -7,6 +7,13 @@ from tensorflow.keras import layers
 from google.cloud import storage
 import joblib
 
+# Check for GPU availability
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+if len(tf.config.list_physical_devices('GPU')) > 0:
+    print("GPU is available and will be used.")
+else:
+    print("GPU is NOT available. Training will run on CPU.")
+
 def load_data_manual(input_path):
     print(f"Loading data from {input_path}...")
     with open(input_path) as f:

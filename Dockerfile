@@ -1,9 +1,12 @@
-FROM python:3.11-slim
+FROM tensorflow/tensorflow:2.15.0-gpu
 
 WORKDIR /app
 
 # Install system dependencies if needed
-RUN apt-get update && apt-get install -y build-essential
+RUN apt-get update && apt-get install -y build-essential git
+
+# Install torch with CUDA support (compatible with CUDA 12.x from TF image)
+RUN pip install torch --index-url https://download.pytorch.org/whl/cu121
 
 # Install python dependencies
 COPY requirements.txt .

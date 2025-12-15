@@ -53,7 +53,8 @@ def train_and_save(output_path, input_path=None):
             scaler_type='robust',     
             learning_rate=1e-3,
             n_pool_kernel_size=[2, 2, 2], 
-            n_freq_downsample=[168, 24, 1] 
+            n_freq_downsample=[168, 24, 1],
+            accelerator="gpu"
         )
     ]
     

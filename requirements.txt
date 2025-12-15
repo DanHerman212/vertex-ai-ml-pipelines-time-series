@@ -8,4 +8,4 @@ db-dtypes
 kfp
 pyarrow
 apache-beam[gcp]
-tensorflow
+
