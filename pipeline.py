@@ -103,6 +103,7 @@ def gru_pipeline(
     # We will rely on set_gpu_limit(1). Vertex AI often defaults to T4.
     # If specific GPU is needed, we can try add_node_selector_constraint with correct signature later.
     # train_gru_task.set_accelerator_type('NVIDIA_TESLA_T4')
+    pass
 
 if __name__ == "__main__":
     compiler.Compiler().compile(
