@@ -37,16 +37,27 @@ def split_data_indices(n):
 
 def evaluate_gru(model_dir, raw_data, mbt, test_start_idx, sequence_length=150):
     print("Evaluating GRU Model...")
-    model_path = os.path.join(model_dir, "gru_model.keras")
-    scaler_path = os.path.join(model_dir, "scaler.pkl")
+    # Check for SavedModel format (directory) or Keras file
+    if os.path.isdir(model_dir) and os.path.exists(os.path.join(model_dir, "saved_model.pb")):
+        print(f"Loading SavedModel from {model_dir}...")
+        model = tf.keras.models.load_model(model_dir)
+    else:
+        # Fallback to looking for specific file if not a SavedModel dir
+        model_path = os.path.join(model_dir, "gru_model.keras")
+        if os.path.exists(model_path):
+             print(f"Loading Keras model from {model_path}...")
+             model = tf.keras.models.load_model(model_path)
+        else:
+             # Try loading the directory itself (sometimes Keras saves as dir without saved_model.pb visible at top level in some versions)
+             print(f"Attempting to load model from directory {model_dir}...")
+             try:
+                model = tf.keras.models.load_model(model_dir)
+             except:
+                raise FileNotFoundError(f"Could not find valid model at {model_dir}")
 
-    if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Model not found at {model_path}")
+    scaler_path = os.path.join(model_dir, "scaler.pkl")
     if not os.path.exists(scaler_path):
         raise FileNotFoundError(f"Scaler not found at {scaler_path}")
-
-    # Load Model
-    model = tf.keras.models.load_model(model_path)
     
     # Load Scaler
     scaler = joblib.load(scaler_path)
