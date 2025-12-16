@@ -2,13 +2,10 @@ neuralforecast==1.6.4
 pandas
 numpy
 google-cloud-storage
-google-cloud-aiplatform>=1.38.0
+google-cloud-aiplatform
 google-cloud-bigquery
 db-dtypes
-kfp>=2.7.0
-google-cloud-pipeline-components>=2.13.0
 pyarrow
 joblib
 scikit-learn
-protobuf>=4.25.0
 
