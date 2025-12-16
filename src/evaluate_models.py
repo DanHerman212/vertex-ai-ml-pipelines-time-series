@@ -209,7 +209,6 @@ def plot_loss(model_dir, output_path):
     </html>
     """
     
-    import os
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w') as f:
         f.write(html_content)
@@ -255,7 +254,6 @@ def plot_predictions(actuals, predictions, output_path):
     </html>
     """
     
-    import os
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, 'w') as f:
         f.write(html_content)
