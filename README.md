@@ -28,7 +28,7 @@ Update variables in deploy_pipeline.sh
 ```
 .
 ├── deploy_pipeline.sh                 # Main orchestration script: builds Docker image, compiles pipeline, and submits job to Vertex AI
-├── pipeline.py                        # Kubeflow Pipeline (KFP) definition: defines steps (Extract -> Preprocess -> Train) and resources (GPU)
+├── pipeline.py                        # Kubeflow Pipeline (KFP) definition: defines steps (Extract -> Preprocess -> Train -> Evaluate) and resources (GPU)
 ├── submit_pipeline.py                 # Python script to submit the compiled pipeline job using the Vertex AI SDK
 ├── Dockerfile                         # Defines the container environment (TensorFlow, PyTorch, CUDA) used by all pipeline steps
 ├── requirements.txt                   # Python dependencies installed inside the Docker container
@@ -38,7 +38,7 @@ Update variables in deploy_pipeline.sh
 │   ├── preprocess.py                  # Step 2: Cleans data, removes outliers, and merges with weather data
 │   ├── train_gru.py                   # Step 3: Trains the GRU model on GPU and saves artifacts to GCS
 │   ├── train_model.py                 # Alternative training script (NHITS/N-BEATS)
-│   ├── evaluate_models.py             # Script for evaluating model performance metrics
+│   ├── evaluate_models.py             # Step 4: Evaluates model performance (MAE) on test set
 │   ├── prediction_utils.py            # Helper functions for generating predictions
 │   └── streaming_pipeline.py          # Logic for real-time/streaming inference
 └── training_and_preprocessing_workflows/ # Jupyter notebooks for initial experimentation and analysis
