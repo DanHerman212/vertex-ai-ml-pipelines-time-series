@@ -1,4 +1,4 @@
-neuralforecast
+neuralforecast==1.6.4
 pandas
 numpy
 google-cloud-storage==2.13.0
