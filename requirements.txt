@@ -1,5 +1,6 @@
 pandas
 numpy
+protobuf<5.0.0dev
 google-cloud-storage
 google-cloud-aiplatform
 google-cloud-bigquery

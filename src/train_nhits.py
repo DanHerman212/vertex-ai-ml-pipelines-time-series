@@ -70,7 +70,7 @@ def train_and_save(model_dir, input_path):
     # Let's try to infer or use a dummy freq if it's just sequence data.
     # For this dataset, it seems to be event-based (train arrivals), not strictly hourly.
     # So we might want to treat it as a sequence.
-    nf = NeuralForecast(models=models, freq='M') # 'M' is minute? No, let's use default or 'auto'
+    nf = NeuralForecast(models=models, freq='H') # 'M' is minute? No, let's use default or 'auto'
     
     # 3. Train Model
     print("Training NHITS model...")
