@@ -214,8 +214,9 @@ if __name__ == "__main__":
     best_model_path = "optimized_gru.keras"
     final_path = os.path.join(args.model_dir, 'gru_model.keras')
     if os.path.exists(best_model_path):
-        os.rename(best_model_path, final_path)
-        print(f"Best model moved to {final_path}")
+        import shutil
+        shutil.copy(best_model_path, final_path)
+        print(f"Best model copied to {final_path}")
     else:
         model.save(final_path)
         print(f"Model saved to {final_path}")
