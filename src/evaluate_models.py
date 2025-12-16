@@ -88,7 +88,7 @@ def evaluate_gru(model_dir, raw_data, mbt, test_start_idx, sequence_length=150):
     # Get Actuals
     actuals = np.concatenate([y for x, y in test_ds], axis=0)
     
-    mae = mean_absolute_error(actuals, predictions)
+    mae = float(mean_absolute_error(actuals, predictions))
     print(f"GRU Test MAE: {mae}")
     return mae
 
