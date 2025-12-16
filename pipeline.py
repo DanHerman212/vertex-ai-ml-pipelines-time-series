@@ -52,7 +52,7 @@ def preprocess_component(
 @dsl.container_component
 def train_gru_component(
     input_csv: dsl.Input[dsl.Dataset],
-    model_dir: dsl.Output[dsl.Model],
+    model_dir: dsl.Output[artifact_types.UnmanagedContainerModel],
 ):
     return dsl.ContainerSpec(
         image=TRAINING_IMAGE_URI,
@@ -66,7 +66,7 @@ def train_gru_component(
 @dsl.container_component
 def evaluate_model_component(
     input_csv: dsl.Input[dsl.Dataset],
-    model_dir: dsl.Input[dsl.Model],
+    model_dir: dsl.Input[artifact_types.UnmanagedContainerModel],
     metrics: dsl.Output[dsl.Metrics],
 ):
     return dsl.ContainerSpec(
