@@ -79,9 +79,9 @@ fi
 # 2. Compile Pipeline
 echo ""
 echo "[2/3] Compiling Pipeline..."
-# Force install dependencies from requirements.txt to ensure version compatibility
-echo "Installing/Updating Python dependencies from requirements.txt..."
-pip install -r requirements.txt
+# Only install lightweight compilation dependencies, not the full training requirements
+echo "Installing KFP and Pipeline Components..."
+pip install "kfp>=2.7.0" "google-cloud-pipeline-components>=2.13.0" "google-cloud-aiplatform>=1.38.0"
 
 # Export the image URI so pipeline.py can use it during compilation
 export TRAINING_IMAGE_URI="$IMAGE_URI"
