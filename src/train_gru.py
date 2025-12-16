@@ -167,21 +167,9 @@ def build_optimized_gru_model(input_shape):
     model = keras.Model(inputs=inputs, outputs=outputs, name="optimized_gru")
     return model
 
-def upload_to_gcs(local_path, bucket_name, blob_path):
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-    for root, dirs, files in os.walk(local_path):
-        for file in files:
-            local_file = os.path.join(root, file)
-            remote_path = os.path.join(blob_path, os.path.relpath(local_file, local_path))
-            blob = bucket.blob(remote_path)
-            blob.upload_from_filename(local_file)
-            print(f"Uploaded {local_file} to gs://{bucket_name}/{remote_path}")
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_csv', type=str, required=True, help='Path to input CSV file')
-    parser.add_argument('--bucket_name', type=str, help='GCS Bucket name')
     parser.add_argument('--model_dir', type=str, default='gru_model', help='Local directory to save model')
     args = parser.parse_args()
 
@@ -210,29 +198,16 @@ if __name__ == "__main__":
     # 6. Run Experiment
     history = run_experiment(model, train_ds, val_ds, "optimized_gru", epochs=50, patience=5)
     
-    # 7. Save Model
+    # 7. Save Model (SavedModel format for Vertex AI)
     best_model_path = "optimized_gru.keras"
-    final_path = os.path.join(args.model_dir, 'gru_model.keras')
     
-    # Helper to copy file safely across devices
-    def safe_copy(src, dst):
-        import shutil
-        with open(src, 'rb') as f_src:
-            with open(dst, 'wb') as f_dst:
-                shutil.copyfileobj(f_src, f_dst)
-
     if os.path.exists(best_model_path):
-        safe_copy(best_model_path, final_path)
-        print(f"Best model copied to {final_path}")
+        print(f"Loading best model from {best_model_path}...")
+        best_model = keras.models.load_model(best_model_path)
+        print(f"Saving model to {args.model_dir} in SavedModel format...")
+        best_model.save(args.model_dir) # Saves as SavedModel directory
     else:
-        # Save to local temp first to avoid GCS fuse issues with direct save
-        temp_path = "temp_gru_model.keras"
-        model.save(temp_path)
-        safe_copy(temp_path, final_path)
-        print(f"Model saved to {final_path}")
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+        print(f"Best model not found. Saving current model to {args.model_dir}...")
+        model.save(args.model_dir)
 
-    # Upload if bucket provided
-    if args.bucket_name:
-        upload_to_gcs(args.model_dir, args.bucket_name, "models/gru/v1")
+

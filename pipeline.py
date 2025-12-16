@@ -8,6 +8,7 @@ from kfp.dsl import (
     Model,
     Artifact,
 )
+from google_cloud_pipeline_components.v1.model import ModelUploadOp
 import os
 
 # Get image URI from environment variable (injected by deploy script)
@@ -50,7 +51,6 @@ def preprocess_component(
 @dsl.container_component
 def train_gru_component(
     input_csv: dsl.Input[dsl.Dataset],
-    bucket_name: str,
     model_dir: dsl.Output[dsl.Model],
 ):
     return dsl.ContainerSpec(
@@ -58,7 +58,6 @@ def train_gru_component(
         command=["python", "src/train_gru.py"],
         args=[
             "--input_csv", input_csv.path,
-            "--bucket_name", bucket_name,
             "--model_dir", model_dir.path
         ]
     )
@@ -87,7 +86,8 @@ def evaluate_model_component(
 def gru_pipeline(
     project_id: str,
     bq_query: str,
-    bucket_name: str
+    region: str = "us-east1",
+    model_display_name: str = "gru-model-v1"
 ):
     # Step 1: Extract
     extract_task = extract_bq_data(
@@ -102,8 +102,7 @@ def gru_pipeline(
     
     # Step 3: Train GRU
     train_gru_task = train_gru_component(
-        input_csv=preprocess_task.outputs["output_csv"],
-        bucket_name=bucket_name
+        input_csv=preprocess_task.outputs["output_csv"]
     )
 
     # Configure GPU resources
@@ -116,7 +115,16 @@ def gru_pipeline(
     # train_gru_task.set_cpu_limit('8')
     # train_gru_task.set_memory_limit('32G')
 
-    # Step 4: Evaluate
+    # Step 4: Upload to Model Registry
+    model_upload_task = ModelUploadOp(
+        project=project_id,
+        location=region,
+        display_name=model_display_name,
+        unmanaged_container_model=train_gru_task.outputs["model_dir"],
+        serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-12:latest"
+    )
+
+    # Step 5: Evaluate
     evaluate_task = evaluate_model_component(
         input_csv=preprocess_task.outputs["output_csv"],
         model_dir=train_gru_task.outputs["model_dir"]
