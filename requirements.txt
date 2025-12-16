@@ -8,4 +8,6 @@ db-dtypes
 kfp
 pyarrow
 apache-beam[gcp]
+joblib
+scikit-learn
 

@@ -91,7 +91,7 @@ def preprocess_data(input_path, output_path):
                 # 7. Clean up
                 # Forward fill missing weather data (small gaps)
                 weather_cols = [col for col in ['temp', 'precip', 'snow', 'snowdepth', 'visibility', 'windspeed'] if col in df.columns]
-                df[weather_cols] = df[weather_cols].fillna(method='ffill')
+                df[weather_cols] = df[weather_cols].ffill()
                 
                 # Drop the helper columns (join key and the duplicate weather timestamp)
                 df.drop(columns=['weather_join_key', 'datetime'], inplace=True)
