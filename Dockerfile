@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:2.15.0-gpu
+FROM us-docker.pkg.dev/vertex-ai/training/tf-gpu.2-17.py310:latest
 
 WORKDIR /app
 
@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y build-essential git
 RUN pip install uv
 
 # Install torch with CUDA support (compatible with CUDA 12.x from TF image)
+# Note: The base image likely has CUDA 12.x.
 RUN uv pip install --system torch --index-url https://download.pytorch.org/whl/cu121
 
 # Install python dependencies
