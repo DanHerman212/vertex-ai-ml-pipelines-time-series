@@ -2,7 +2,7 @@ from google.cloud import aiplatform
 import argparse
 import sys
 
-def submit_pipeline(project_id, region, bucket_name, pipeline_root, pipeline_json, bq_query, training_image_uri):
+def submit_pipeline(project_id, region, bucket_name, pipeline_root, pipeline_json, bq_query):
     print(f"Initializing Vertex AI SDK for project {project_id} in {region}...")
     aiplatform.init(project=project_id, location=region, staging_bucket=bucket_name)
 
@@ -14,8 +14,7 @@ def submit_pipeline(project_id, region, bucket_name, pipeline_root, pipeline_jso
         parameter_values={
             "project_id": project_id,
             "bq_query": bq_query,
-            "bucket_name": bucket_name,
-            "training_image_uri": training_image_uri
+            "bucket_name": bucket_name
         },
         enable_caching=True
     )
@@ -33,7 +32,6 @@ if __name__ == "__main__":
     parser.add_argument('--pipeline_root', type=str, required=True)
     parser.add_argument('--pipeline_json', type=str, required=True)
     parser.add_argument('--bq_query', type=str, required=True)
-    parser.add_argument('--training_image_uri', type=str, required=True)
     
     args = parser.parse_args()
     
@@ -44,8 +42,7 @@ if __name__ == "__main__":
             args.bucket_name,
             args.pipeline_root,
             args.pipeline_json,
-            args.bq_query,
-            args.training_image_uri
+            args.bq_query
         )
     except Exception as e:
         print(f"Error submitting pipeline: {e}")

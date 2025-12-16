@@ -10,16 +10,18 @@ from kfp.dsl import (
 )
 import os
 
+# Get image URI from environment variable (injected by deploy script)
+TRAINING_IMAGE_URI = os.environ.get("TRAINING_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/gru-training:v1")
+
 # 1. Component: Extract Data from BigQuery
 @dsl.container_component
 def extract_bq_data(
     project_id: str,
     query: str,
-    image_uri: str,
     output_dataset: dsl.Output[dsl.Dataset]
 ):
     return dsl.ContainerSpec(
-        image=image_uri,
+        image=TRAINING_IMAGE_URI,
         command=["python", "src/extract.py"],
         args=[
             "--project_id", project_id,
@@ -35,10 +37,9 @@ def extract_bq_data(
 def preprocess_component(
     input_csv: dsl.Input[dsl.Dataset],
     output_csv: dsl.Output[dsl.Dataset],
-    image_uri: str,
 ):
     return dsl.ContainerSpec(
-        image=image_uri,
+        image=TRAINING_IMAGE_URI,
         command=["python", "src/preprocess.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -51,10 +52,9 @@ def train_gru_component(
     input_csv: dsl.Input[dsl.Dataset],
     bucket_name: str,
     model_dir: dsl.Output[dsl.Model],
-    image_uri: str,
 ):
     return dsl.ContainerSpec(
-        image=image_uri,
+        image=TRAINING_IMAGE_URI,
         command=["python", "src/train_gru.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -68,10 +68,9 @@ def evaluate_model_component(
     input_csv: dsl.Input[dsl.Dataset],
     model_dir: dsl.Input[dsl.Model],
     metrics: dsl.Output[dsl.Metrics],
-    image_uri: str,
 ):
     return dsl.ContainerSpec(
-        image=image_uri,
+        image=TRAINING_IMAGE_URI,
         command=["python", "src/evaluate_models.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -88,27 +87,23 @@ def evaluate_model_component(
 def gru_pipeline(
     project_id: str,
     bq_query: str,
-    bucket_name: str,
-    training_image_uri: str
+    bucket_name: str
 ):
     # Step 1: Extract
     extract_task = extract_bq_data(
         project_id=project_id,
-        query=bq_query,
-        image_uri=training_image_uri
+        query=bq_query
     )
     
     # Step 2: Preprocess
     preprocess_task = preprocess_component(
-        input_csv=extract_task.outputs["output_dataset"],
-        image_uri=training_image_uri
+        input_csv=extract_task.outputs["output_dataset"]
     )
     
     # Step 3: Train GRU
     train_gru_task = train_gru_component(
         input_csv=preprocess_task.outputs["output_csv"],
-        bucket_name=bucket_name,
-        image_uri=training_image_uri
+        bucket_name=bucket_name
     )
 
     # Configure GPU resources
@@ -124,8 +119,7 @@ def gru_pipeline(
     # Step 4: Evaluate
     evaluate_task = evaluate_model_component(
         input_csv=preprocess_task.outputs["output_csv"],
-        model_dir=train_gru_task.outputs["model_dir"],
-        image_uri=training_image_uri
+        model_dir=train_gru_task.outputs["model_dir"]
     )
 
 if __name__ == "__main__":

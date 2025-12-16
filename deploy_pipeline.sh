@@ -85,6 +85,8 @@ if ! python -c "import kfp; import google.cloud.aiplatform" &> /dev/null; then
     pip install kfp google-cloud-pipeline-components google-cloud-aiplatform
 fi
 
+# Export the image URI so pipeline.py can use it during compilation
+export TRAINING_IMAGE_URI="$IMAGE_URI"
 python pipeline.py
 
 if [ ! -f "$PIPELINE_JSON" ]; then
@@ -102,8 +104,7 @@ python submit_pipeline.py \
   --bucket_name="$BUCKET_NAME" \
   --pipeline_root="$PIPELINE_ROOT" \
   --pipeline_json="$PIPELINE_JSON" \
-  --bq_query="$BQ_QUERY" \
-  --training_image_uri="$IMAGE_URI"
+  --bq_query="$BQ_QUERY"
 
 echo ""
 echo "========================================================"
