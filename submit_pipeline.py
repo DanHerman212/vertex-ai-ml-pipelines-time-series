@@ -16,7 +16,7 @@ def submit_pipeline(project_id, region, bucket_name, pipeline_root, pipeline_jso
             "bq_query": bq_query,
             "bucket_name": bucket_name
         },
-        enable_caching=True
+        enable_caching=False
     )
 
     job.submit()
