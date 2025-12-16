@@ -79,6 +79,20 @@ def evaluate_model_component(
         ]
     )
 
+# Helper component to attach serving metadata
+@dsl.component(base_image="python:3.10")
+def attach_serving_spec(
+    original_model: dsl.Input[artifact_types.UnmanagedContainerModel],
+    model_with_spec: dsl.Output[artifact_types.UnmanagedContainerModel],
+    serving_image_uri: str
+):
+    model_with_spec.uri = original_model.uri
+    model_with_spec.metadata = {
+        "containerSpec": {
+            "imageUri": serving_image_uri
+        }
+    }
+
 # 3. Pipeline Definition
 @dsl.pipeline(
     name="gru-training-pipeline",
@@ -116,12 +130,20 @@ def gru_pipeline(
     # train_gru_task.set_cpu_limit('8')
     # train_gru_task.set_memory_limit('32G')
 
+    # Step 3.5: Attach Serving Spec
+    # We attach the serving container image URI to the model artifact metadata
+    # so that Vertex AI knows which image to use for deployment.
+    model_with_metadata_task = attach_serving_spec(
+        original_model=train_gru_task.outputs["model_dir"],
+        serving_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-17:latest"
+    )
+
     # Step 4: Upload to Model Registry
     model_upload_task = ModelUploadOp(
         project=project_id,
         location=region,
         display_name=model_display_name,
-        unmanaged_container_model=train_gru_task.outputs["model_dir"],
+        unmanaged_container_model=model_with_metadata_task.outputs["model_with_spec"],
     )
 
 

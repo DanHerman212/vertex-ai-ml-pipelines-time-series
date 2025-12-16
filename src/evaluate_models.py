@@ -40,18 +40,41 @@ def evaluate_gru(model_dir, raw_data, mbt, test_start_idx, sequence_length=150):
     # Check for SavedModel format (directory) or Keras file
     if os.path.isdir(model_dir) and os.path.exists(os.path.join(model_dir, "saved_model.pb")):
         print(f"Loading SavedModel from {model_dir}...")
-        model = tf.keras.models.load_model(model_dir)
+        # Use tf.saved_model.load for inference-only loading of SavedModels exported via model.export()
+        # Note: model.export() creates a low-level SavedModel, not a Keras model.
+        # We need to use the serving signature.
+        loaded_model = tf.saved_model.load(model_dir)
+        inference_func = loaded_model.signatures["serving_default"]
+        
+        # We need to wrap this to behave like model.predict() for the evaluation loop below
+        # or adjust the evaluation loop.
+        # Let's create a simple wrapper function.
+        def predict_wrapper(input_data):
+            # input_data is numpy array (batch, seq_len, features)
+            # Convert to tensor
+            input_tensor = tf.convert_to_tensor(input_data, dtype=tf.float32)
+            # Run inference
+            output = inference_func(input_tensor)
+            # The output key is usually 'dense' or similar, or we take the first output
+            # Let's inspect keys if needed, but usually it's the output layer name.
+            # For a single output model, we can often just take the first value.
+            return list(output.values())[0].numpy()
+            
+        model_predict = predict_wrapper
+        
     else:
         # Fallback to looking for specific file if not a SavedModel dir
         model_path = os.path.join(model_dir, "gru_model.keras")
         if os.path.exists(model_path):
              print(f"Loading Keras model from {model_path}...")
              model = tf.keras.models.load_model(model_path)
+             model_predict = model.predict
         else:
              # Try loading the directory itself (sometimes Keras saves as dir without saved_model.pb visible at top level in some versions)
              print(f"Attempting to load model from directory {model_dir}...")
              try:
                 model = tf.keras.models.load_model(model_dir)
+                model_predict = model.predict
              except:
                 raise FileNotFoundError(f"Could not find valid model at {model_dir}")
 
@@ -86,7 +109,18 @@ def evaluate_gru(model_dir, raw_data, mbt, test_start_idx, sequence_length=150):
     
     # Predict
     print("Generating predictions...")
-    predictions_scaled = model.predict(test_ds, verbose=1)
+    # Use the wrapper or the model.predict method
+    if hasattr(model_predict, '__call__') and not isinstance(model_predict, tf.keras.Model):
+         # It's our wrapper function, we need to iterate over the dataset manually or adjust wrapper
+         # Since dataset is batched, let's iterate
+         all_preds = []
+         for batch in test_ds:
+             inputs, _ = batch
+             batch_preds = model_predict(inputs)
+             all_preds.append(batch_preds)
+         predictions_scaled = np.concatenate(all_preds, axis=0)
+    else:
+         predictions_scaled = model_predict(test_ds, verbose=1)
     
     # Inverse Transform
     # mbt was at index 1 of the features passed to scale_data in train_gru.py
