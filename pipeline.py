@@ -8,6 +8,7 @@ from kfp.dsl import (
     Model,
     Artifact,
 )
+from google_cloud_pipeline_components.types import artifact_types
 from google_cloud_pipeline_components.v1.model import ModelUploadOp
 import os
 
@@ -121,8 +122,9 @@ def gru_pipeline(
         location=region,
         display_name=model_display_name,
         unmanaged_container_model=train_gru_task.outputs["model_dir"],
-        serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-15:latest"
+        serving_container_image="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-15:latest"
     )
+
 
     # Step 5: Evaluate
     evaluate_task = evaluate_model_component(
