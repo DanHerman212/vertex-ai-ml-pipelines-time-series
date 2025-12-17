@@ -40,26 +40,28 @@ def train_and_save(model_dir, input_path, test_output_path=None):
     train_size = int(n * 0.6)
     val_size = int(n * 0.2)
     test_size = n - train_size - val_size
-    
-    print(f"Total samples: {n}")
-    print(f"Train size: {train_size}")
-    print(f"Val size: {val_size}")
-    print(f"Test size: {test_size}")
+
+    train_df = Y_df.iloc[:train_size]
+    val_df = Y_df.iloc[train_size:train_size+val_size]
+    test_df = Y_df.iloc[train_size+val_size:]
+
+    print(f"Train size: {len(train_df)}")
+    print(f"Validation size: {len(val_df)}")
+    print(f"Test size: {len(test_df)}")
     
     # Create Train+Val DataFrame for fitting
-    # We only pass the first 80% of data to fit()
-    train_val_df = Y_df.iloc[:train_size + val_size]
+    train_val_df = pd.concat([train_df, val_df])
     
     # Create Test DataFrame for export
     # IMPORTANT: We include the lookback window (input_size=150) so the model has context
     # for the first prediction in the test set.
     input_size = 150
     start_idx = max(0, train_size + val_size - input_size)
-    test_df = Y_df.iloc[start_idx:]
+    test_df_export = Y_df.iloc[start_idx:]
     
     if test_output_path:
         print(f"Saving test dataframe to {test_output_path}...")
-        test_df.to_csv(test_output_path, index=False)
+        test_df_export.to_csv(test_output_path, index=False)
     
     # Define Exogenous Variables
     # Note: futr_exog_list requires these columns to be known in the future. 
@@ -88,7 +90,7 @@ def train_and_save(model_dir, input_path, test_output_path=None):
             learning_rate=1e-3,
             n_pool_kernel_size=[2, 2, 2], 
             n_freq_downsample=[168, 24, 1],
-            accelerator="cpu", # Use CPU for now to match container, or "gpu" if available
+            accelerator="gpu", # Use CPU for now to match container, or "gpu" if available
             logger=logger      # Pass logger to capture history
         )
     ]
