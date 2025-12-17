@@ -8,89 +8,26 @@ import tensorflow as tf
 import matplotlib
 matplotlib.use('Agg') # Set backend to Agg for headless environments
 import matplotlib.pyplot as plt
+from scipy.stats import gaussian_kde
 from sklearn.metrics import mean_absolute_error
 from google.cloud import storage
 
 def evaluate_gru(model_dir, test_ds):
     print("Evaluating GRU Model...")
-    # Check for SavedModel format (directory) or Keras file
-    if os.path.isdir(model_dir) and os.path.exists(os.path.join(model_dir, "saved_model.pb")):
-        print(f"Loading SavedModel from {model_dir}...")
-        # Use tf.saved_model.load for inference-only loading of SavedModels exported via model.export()
-        # Note: model.export() creates a low-level SavedModel, not a Keras model.
-        # We need to use the serving signature.
-        loaded_model = tf.saved_model.load(model_dir)
-        inference_func = loaded_model.signatures["serving_default"]
-        
-        print(f"Model inputs: {inference_func.structured_input_signature}")
-        print(f"Model outputs: {inference_func.structured_outputs}")
-
-        # We need to wrap this to behave like model.predict() for the evaluation loop below
-        # or adjust the evaluation loop.
-        # Let's create a simple wrapper function.
-        def predict_wrapper(input_data):
-            # input_data is numpy array (batch, seq_len, features)
-            # Convert to tensor. Use tf.cast to handle float64 inputs safely.
-            input_tensor = tf.cast(input_data, dtype=tf.float32)
-            
-            # Run inference
-            # Check signature to determine if we need kwargs
-            args, kwargs = inference_func.structured_input_signature
-            
-            try:
-                if not args and kwargs:
-                    # No positional args, but we have kwargs.
-                    # Assuming single input for now, use the first key.
-                    key = list(kwargs.keys())[0]
-                    output = inference_func(**{key: input_tensor})
-                else:
-                    # Try positional
-                    output = inference_func(input_tensor)
-            except Exception as e:
-                print(f"Inference call failed: {e}. Signature: {inference_func.structured_input_signature}")
-                raise e
-            
-            # The output key is usually 'dense' or similar, or we take the first output
-            # Let's inspect keys if needed, but usually it's the output layer name.
-            # For a single output model, we can often just take the first value.
-            return list(output.values())[0].numpy()
-            
-        model_predict = predict_wrapper
-        
+    
+    model_path = os.path.join(model_dir, "gru_model.keras")
+    if os.path.exists(model_path):
+            print(f"Loading Keras model from {model_path}...")
+            model = tf.keras.models.load_model(model_path)
     else:
-        # Fallback to looking for specific file if not a SavedModel dir
-        model_path = os.path.join(model_dir, "gru_model.keras")
-        if os.path.exists(model_path):
-             print(f"Loading Keras model from {model_path}...")
-             model = tf.keras.models.load_model(model_path)
-             model_predict = model.predict
-        else:
-             # Try loading the directory itself (sometimes Keras saves as dir without saved_model.pb visible at top level in some versions)
-             print(f"Attempting to load model from directory {model_dir}...")
-             try:
-                model = tf.keras.models.load_model(model_dir)
-                model_predict = model.predict
-             except:
-                raise FileNotFoundError(f"Could not find valid model at {model_dir}")
+            raise FileNotFoundError(f"Could not find valid model at {model_path}")
 
     # Predict
     print("Generating predictions...")
-    # Use the wrapper or the model.predict method
-    if hasattr(model_predict, '__call__') and not isinstance(model_predict, tf.keras.Model):
-         # It's our wrapper function, we need to iterate over the dataset manually or adjust wrapper
-         # Since dataset is batched, let's iterate
-         all_preds = []
-         for batch in test_ds:
-             inputs, _ = batch
-             batch_preds = model_predict(inputs)
-             all_preds.append(batch_preds)
-         predictions_scaled = np.concatenate(all_preds, axis=0)
-    else:
-         predictions_scaled = model_predict(test_ds, verbose=1)
+    predictions = model.predict(test_ds, verbose=1)
     
     # Model was trained on raw targets (mbt), so predictions are already in raw scale.
     # No inverse transform needed for the target variable.
-    predictions = predictions_scaled
     
     # Get Actuals
     actuals = np.concatenate([y for x, y in test_ds], axis=0)
@@ -108,17 +45,37 @@ def plot_loss(model_dir, output_path):
     with open(history_path, 'r') as f:
         history = json.load(f)
 
-    plt.figure(figsize=(10, 6))
+    # Create figure with two subplots
+    plt.figure(figsize=(16, 6))
+
+    # Plot 1: Loss
+    plt.subplot(1, 2, 1)
+    epochs = range(1, len(history['loss']) + 1)
     if 'loss' in history:
-        plt.plot(history['loss'], label='Train Loss')
+        plt.plot(epochs, history['loss'], label='Training Loss')
     if 'val_loss' in history:
-        plt.plot(history['val_loss'], label='Validation Loss')
+        plt.plot(epochs, history['val_loss'], label='Validation Loss')
     
-    plt.title('Model Training Loss')
-    plt.xlabel('Epoch')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
-    plt.grid(True)
+    plt.grid(True, alpha=0.3)
+
+    # Plot 2: MAE
+    plt.subplot(1, 2, 2)
+    if 'mae' in history:
+        plt.plot(epochs, history['mae'], label='Training MAE')
+    if 'val_mae' in history:
+        plt.plot(epochs, history['val_mae'], label='Validation MAE')
+        
+    plt.title('Training and Validation MAE')
+    plt.xlabel('Epochs')
+    plt.ylabel('MAE')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
     
     # Save as HTML for Vertex AI visualization
     # We can save as an image and embed it in HTML, or just save as image if the output type allows.
@@ -154,24 +111,68 @@ def plot_loss(model_dir, output_path):
     
     print(f"Loss plot saved to {output_path}")
 
-def plot_predictions(actuals, predictions, output_path):
-    plt.figure(figsize=(12, 6))
+def plot_residuals_distribution(actuals, predictions, output_path):
+    plt.figure(figsize=(16, 6))
+
+    # Plot 1: Distribution of Actual vs Predicted
+    plt.subplot(1, 2, 1)
     
-    # Plot a subset if data is too large
-    limit = 500
-    if len(actuals) > limit:
-        plt.plot(actuals[:limit], label='Actual', alpha=0.7)
-        plt.plot(predictions[:limit], label='Predicted', alpha=0.7)
-        plt.title(f'Actual vs Predicted (First {limit} samples)')
-    else:
-        plt.plot(actuals, label='Actual', alpha=0.7)
-        plt.plot(predictions, label='Predicted', alpha=0.7)
-        plt.title('Actual vs Predicted')
-        
-    plt.xlabel('Time Step')
-    plt.ylabel('MBT')
+    # Kernel Density Estimation
+    density_actual = gaussian_kde(actuals)
+    density_pred = gaussian_kde(predictions)
+    
+    # Determine range for evaluation
+    min_val = min(actuals.min(), predictions.min())
+    max_val = max(actuals.max(), predictions.max())
+    padding = (max_val - min_val) * 0.1
+    xs = np.linspace(min_val - padding, max_val + padding, 200)
+    
+    plt.plot(xs, density_actual(xs), color='green', label='Actual')
+    plt.fill_between(xs, density_actual(xs), color='green', alpha=0.3)
+    
+    plt.plot(xs, density_pred(xs), color='orange', label='Predicted')
+    plt.fill_between(xs, density_pred(xs), color='orange', alpha=0.3)
+    
+    plt.title('Distribution of Actual vs Predicted Values')
+    plt.xlabel('Value')
+    plt.ylabel('Density')
     plt.legend()
-    plt.grid(True)
+    plt.grid(True, alpha=0.3)
+
+    # Plot 2: Residuals
+    residuals = actuals - predictions.flatten() # Ensure 1D
+    plt.subplot(1, 2, 2)
+    
+    # Histogram
+    # Use density=False to get counts, but we need to scale KDE to match
+    counts, bins, patches = plt.hist(residuals, bins=30, density=False, color='purple', alpha=0.6, edgecolor='black')
+    
+    # KDE for residuals
+    density_res = gaussian_kde(residuals)
+    
+    min_res = residuals.min()
+    max_res = residuals.max()
+    padding_res = (max_res - min_res) * 0.1
+    xs_res = np.linspace(min_res - padding_res, max_res + padding_res, 200)
+    
+    curve = density_res(xs_res)
+    # Scale curve to match histogram counts
+    # Area of histogram = sum(counts) * bin_width
+    # Area of PDF = 1
+    # So scale factor = len(residuals) * bin_width
+    bin_width = bins[1] - bins[0]
+    scale_factor = len(residuals) * bin_width
+    
+    plt.plot(xs_res, curve * scale_factor, color='purple', linewidth=2)
+    
+    plt.axvline(x=0, color='black', linestyle='--', linewidth=2)
+    
+    plt.title('Distribution of Prediction Errors (Residuals)')
+    plt.xlabel('Error (Actual - Predicted)')
+    plt.ylabel('Count')
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
     
     import base64
     from io import BytesIO
@@ -184,11 +185,11 @@ def plot_predictions(actuals, predictions, output_path):
     html_content = f"""
     <html>
     <head>
-        <title>Prediction Plot</title>
+        <title>Residuals and Distribution</title>
     </head>
     <body>
-        <h1>Actual vs Predicted</h1>
-        <img src="data:image/png;base64,{img_base64}" alt="Prediction Plot">
+        <h1>Model Evaluation Plots</h1>
+        <img src="data:image/png;base64,{img_base64}" alt="Residuals and Distribution Plot">
     </body>
     </html>
     """
@@ -197,7 +198,7 @@ def plot_predictions(actuals, predictions, output_path):
     with open(output_path, 'w') as f:
         f.write(html_content)
     
-    print(f"Prediction plot saved to {output_path}")
+    print(f"Residuals and distribution plot saved to {output_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -219,9 +220,9 @@ if __name__ == "__main__":
     if args.plot_output_path:
         plot_loss(args.model_dir, args.plot_output_path)
         
-    # 4. Plot Predictions
+    # 4. Plot Residuals and Distribution
     if args.prediction_plot_path:
-        plot_predictions(actuals, predictions, args.prediction_plot_path)
+        plot_residuals_distribution(actuals, predictions, args.prediction_plot_path)
     
     # 5. Save Metrics for Vertex AI
     metrics = {
