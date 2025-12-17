@@ -14,6 +14,7 @@ import os
 
 # Get image URI from environment variable (injected by deploy script)
 TRAINING_IMAGE_URI = os.environ.get("TRAINING_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/gru-training:v1")
+NHITS_SERVING_IMAGE_URI = os.environ.get("NHITS_SERVING_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/nhits-serving:v1")
 
 # 1. Component: Extract Data from BigQuery
 @dsl.container_component
@@ -144,7 +145,8 @@ def forecasting_pipeline(
     project_id: str,
     bq_query: str,
     region: str = "us-east1",
-    model_display_name: str = "gru-model-v1"
+    model_display_name: str = "gru-model-v1",
+    nhits_model_display_name: str = "nhits-model-v1"
 ):
     # Step 1: Extract
     extract_task = extract_bq_data(
@@ -177,7 +179,7 @@ def forecasting_pipeline(
     train_nhits_task.set_gpu_limit(1)
     train_nhits_task.set_accelerator_type('NVIDIA_TESLA_T4')
 
-    # Step 3.5: Attach Serving Spec
+    # Step 3.5: Attach Serving Spec (GRU)
     # We attach the serving container image URI to the model artifact metadata
     # so that Vertex AI knows which image to use for deployment.
     model_with_metadata_task = attach_serving_spec(
@@ -185,7 +187,7 @@ def forecasting_pipeline(
         serving_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-15:latest"
     )
 
-    # Step 4: Upload to Model Registry
+    # Step 4: Upload to Model Registry (GRU)
     model_upload_task = ModelUploadOp(
         project=project_id,
         location=region,
@@ -193,6 +195,19 @@ def forecasting_pipeline(
         unmanaged_container_model=model_with_metadata_task.outputs["model_with_spec"],
     )
 
+    # Step 3.5b: Attach Serving Spec (N-HiTS)
+    nhits_model_with_metadata_task = attach_serving_spec(
+        original_model=train_nhits_task.outputs["model_dir"],
+        serving_image_uri=NHITS_SERVING_IMAGE_URI
+    )
+
+    # Step 4b: Upload to Model Registry (N-HiTS)
+    nhits_model_upload_task = ModelUploadOp(
+        project=project_id,
+        location=region,
+        display_name=nhits_model_display_name,
+        unmanaged_container_model=nhits_model_with_metadata_task.outputs["model_with_spec"],
+    )
 
     # Step 5: Evaluate GRU
     evaluate_gru_task = evaluate_gru_component(

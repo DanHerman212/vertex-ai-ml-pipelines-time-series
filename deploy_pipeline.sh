@@ -32,6 +32,7 @@ PROJECT_ID=${PROJECT_ID:-"time-series-478616"}
 REGION=${REGION:-"us-east1"}
 REPO_NAME=${REPO_NAME:-"ml-pipelines"}
 IMAGE_NAME=${IMAGE_NAME:-"gru-training"}
+SERVING_IMAGE_NAME=${SERVING_IMAGE_NAME:-"nhits-serving"}
 # Generate a unique tag based on timestamp if not provided
 TAG=${TAG:-"v$(date +%Y%m%d-%H%M%S)"}
 BUCKET_NAME=${BUCKET_NAME:-"time-series-478616-ml-pipeline"}
@@ -45,6 +46,7 @@ where extract(year from arrival_date) >= 2024'}
 # Derived Variables
 # Note: We keep the image in us-east1 to avoid re-pushing, but run the pipeline in the configured REGION (us-east1)
 IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}:${TAG}"
+SERVING_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVING_IMAGE_NAME}:${TAG}"
 PIPELINE_ROOT="gs://${BUCKET_NAME}/pipeline_root"
 PIPELINE_JSON="forecasting_pipeline.json"
 
@@ -52,6 +54,7 @@ echo "========================================================"
 echo "Starting Deployment for Project: $PROJECT_ID"
 echo "Region: $REGION"
 echo "Image URI: $IMAGE_URI"
+echo "Serving Image URI: $SERVING_IMAGE_URI"
 echo "Pipeline Root: $PIPELINE_ROOT"
 echo "========================================================"
 
@@ -75,6 +78,9 @@ else
     # Use Cloud Build to avoid local disk space issues with large GPU images
     echo "Submitting build to Cloud Build..."
     gcloud builds submit --tag $IMAGE_URI .
+    
+    echo "Building and Pushing N-HiTS Serving Image..."
+    gcloud builds submit --tag $SERVING_IMAGE_URI -f Dockerfile.serving .
 fi
 
 # 2. Compile Pipeline
@@ -87,6 +93,7 @@ pip install -q "kfp>=2.7.0" "google-cloud-pipeline-components>=2.18.0" "google-c
 
 # Export the image URI so pipeline.py can use it during compilation
 export TRAINING_IMAGE_URI="$IMAGE_URI"
+export NHITS_SERVING_IMAGE_URI="$SERVING_IMAGE_URI"
 python pipeline.py
 
 if [ ! -f "$PIPELINE_JSON" ]; then
