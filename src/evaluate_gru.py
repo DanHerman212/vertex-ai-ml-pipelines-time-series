@@ -112,6 +112,10 @@ def plot_loss(model_dir, output_path):
     print(f"Loss plot saved to {output_path}")
 
 def plot_residuals_distribution(actuals, predictions, output_path):
+    # Ensure 1D arrays for KDE
+    actuals = actuals.flatten()
+    predictions = predictions.flatten()
+
     plt.figure(figsize=(16, 6))
 
     # Plot 1: Distribution of Actual vs Predicted
