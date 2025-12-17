@@ -46,7 +46,7 @@ where extract(year from arrival_date) >= 2024'}
 # Note: We keep the image in us-east1 to avoid re-pushing, but run the pipeline in the configured REGION (us-east1)
 IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}:${TAG}"
 PIPELINE_ROOT="gs://${BUCKET_NAME}/pipeline_root"
-PIPELINE_JSON="gru_pipeline.json"
+PIPELINE_JSON="forecasting_pipeline.json"
 
 echo "========================================================"
 echo "Starting Deployment for Project: $PROJECT_ID"

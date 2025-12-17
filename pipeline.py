@@ -137,10 +137,10 @@ def attach_serving_spec(
 
 # 3. Pipeline Definition
 @dsl.pipeline(
-    name="gru-training-pipeline",
-    description="Pipeline to extract data, preprocess, and train the GRU model."
+    name="forecasting-training-pipeline",
+    description="Pipeline to extract data, preprocess, and train both GRU and N-HiTS models."
 )
-def gru_pipeline(
+def forecasting_pipeline(
     project_id: str,
     bq_query: str,
     region: str = "us-east1",
@@ -174,6 +174,8 @@ def gru_pipeline(
     )
     train_nhits_task.set_cpu_limit('8')
     train_nhits_task.set_memory_limit('32G')
+    train_nhits_task.set_gpu_limit(1)
+    train_nhits_task.set_accelerator_type('NVIDIA_TESLA_T4')
 
     # Step 3.5: Attach Serving Spec
     # We attach the serving container image URI to the model artifact metadata
@@ -211,65 +213,8 @@ def gru_pipeline(
     evaluate_nhits_task.set_cpu_limit('4')
     evaluate_nhits_task.set_memory_limit('16G')
 
-@dsl.pipeline(
-    name="gru-only-pipeline",
-    description="Pipeline to extract data, preprocess, and train ONLY the GRU model."
-)
-def gru_only_pipeline(
-    project_id: str,
-    bq_query: str,
-    region: str = "us-east1",
-    model_display_name: str = "gru-model-v1"
-):
-    # Step 1: Extract
-    extract_task = extract_bq_data(
-        project_id=project_id,
-        query=bq_query
-    )
-    
-    # Step 2: Preprocess
-    preprocess_task = preprocess_component(
-        input_csv=extract_task.outputs["output_dataset"]
-    )
-    
-    # Step 3: Train GRU
-    train_gru_task = train_gru_component(
-        input_csv=preprocess_task.outputs["output_csv"]
-    )
-
-    # Configure GPU resources
-    train_gru_task.set_cpu_limit('4')
-    train_gru_task.set_memory_limit('16G')
-    train_gru_task.set_gpu_limit(1)
-    train_gru_task.set_accelerator_type('NVIDIA_TESLA_T4')
-
-    # Step 3.5: Attach Serving Spec
-    model_with_metadata_task = attach_serving_spec(
-        original_model=train_gru_task.outputs["model_dir"],
-        serving_image_uri="us-docker.pkg.dev/vertex-ai/prediction/tf2-cpu.2-15:latest"
-    )
-
-    # Step 4: Upload to Model Registry
-    model_upload_task = ModelUploadOp(
-        project=project_id,
-        location=region,
-        display_name=model_display_name,
-        unmanaged_container_model=model_with_metadata_task.outputs["model_with_spec"],
-    )
-
-    # Step 5: Evaluate GRU
-    evaluate_gru_task = evaluate_gru_component(
-        test_dataset=train_gru_task.outputs["test_dataset"],
-        model_dir=train_gru_task.outputs["model_dir"]
-    )
-    # Assign GPU to evaluation task to support CudnnRNNV3 ops
-    evaluate_gru_task.set_cpu_limit('4')
-    evaluate_gru_task.set_memory_limit('16G')
-    evaluate_gru_task.set_gpu_limit(1)
-    evaluate_gru_task.set_accelerator_type('NVIDIA_TESLA_T4')
-
 if __name__ == "__main__":
     compiler.Compiler().compile(
-        pipeline_func=gru_only_pipeline,
-        package_path="gru_pipeline.json"
+        pipeline_func=forecasting_pipeline,
+        package_path="forecasting_pipeline.json"
     )

@@ -8,7 +8,7 @@ def submit_pipeline(project_id, region, bucket_name, pipeline_root, pipeline_jso
 
     print(f"Submitting pipeline job from {pipeline_json}...")
     job = aiplatform.PipelineJob(
-        display_name="gru-training-pipeline",
+        display_name="forecasting-training-pipeline",
         template_path=pipeline_json,
         pipeline_root=pipeline_root,
         parameter_values={
