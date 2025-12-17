@@ -31,9 +31,9 @@ set -e
 PROJECT_ID=${PROJECT_ID:-"time-series-478616"}
 REGION=${REGION:-"us-east1"}
 REPO_NAME=${REPO_NAME:-"ml-pipelines"}
-GRU_IMAGE_NAME=${GRU_IMAGE_NAME:-"gru-training"}
-NHITS_IMAGE_NAME=${NHITS_IMAGE_NAME:-"nhits-training"}
-SERVING_IMAGE_NAME=${SERVING_IMAGE_NAME:-"nhits-serving"}
+TENSORFLOW_IMAGE_NAME=${TENSORFLOW_IMAGE_NAME:-"tensorflow-training"}
+PYTORCH_IMAGE_NAME=${PYTORCH_IMAGE_NAME:-"pytorch-training"}
+PYTORCH_SERVING_IMAGE_NAME=${PYTORCH_SERVING_IMAGE_NAME:-"pytorch-serving"}
 # Generate a unique tag based on timestamp if not provided
 TAG=${TAG:-"v$(date +%Y%m%d-%H%M%S)"}
 BUCKET_NAME=${BUCKET_NAME:-"time-series-478616-ml-pipeline"}
@@ -46,18 +46,18 @@ where extract(year from arrival_date) >= 2024'}
 
 # Derived Variables
 # Note: We keep the image in us-east1 to avoid re-pushing, but run the pipeline in the configured REGION (us-east1)
-GRU_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${GRU_IMAGE_NAME}:${TAG}"
-NHITS_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${NHITS_IMAGE_NAME}:${TAG}"
-SERVING_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVING_IMAGE_NAME}:${TAG}"
+TENSORFLOW_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${TENSORFLOW_IMAGE_NAME}:${TAG}"
+PYTORCH_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${PYTORCH_IMAGE_NAME}:${TAG}"
+PYTORCH_SERVING_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${PYTORCH_SERVING_IMAGE_NAME}:${TAG}"
 PIPELINE_ROOT="gs://${BUCKET_NAME}/pipeline_root"
 PIPELINE_JSON="forecasting_pipeline.json"
 
 echo "========================================================"
 echo "Starting Deployment for Project: $PROJECT_ID"
 echo "Region: $REGION"
-echo "GRU Image URI: $GRU_IMAGE_URI"
-echo "N-HiTS Image URI: $NHITS_IMAGE_URI"
-echo "Serving Image URI: $SERVING_IMAGE_URI"
+echo "TensorFlow Image URI: $TENSORFLOW_IMAGE_URI"
+echo "PyTorch Image URI: $PYTORCH_IMAGE_URI"
+echo "PyTorch Serving Image URI: $PYTORCH_SERVING_IMAGE_URI"
 echo "Pipeline Root: $PIPELINE_ROOT"
 echo "========================================================"
 
@@ -79,14 +79,14 @@ else
     echo ""
     echo "[1/3] Building and Pushing Docker Images..."
     
-    echo "Building GRU Training Image..."
-    gcloud builds submit --tag $GRU_IMAGE_URI .
+    echo "Building TensorFlow Training Image..."
+    gcloud builds submit --tag $TENSORFLOW_IMAGE_URI .
     
-    echo "Building N-HiTS Training Image..."
-    gcloud builds submit --tag $NHITS_IMAGE_URI -f Dockerfile.nhits .
+    echo "Building PyTorch Training Image..."
+    gcloud builds submit --tag $PYTORCH_IMAGE_URI -f Dockerfile.nhits .
     
-    echo "Building N-HiTS Serving Image..."
-    gcloud builds submit --tag $SERVING_IMAGE_URI -f Dockerfile.serving .
+    echo "Building PyTorch Serving Image..."
+    gcloud builds submit --tag $PYTORCH_SERVING_IMAGE_URI -f Dockerfile.serving .
 fi
 
 # 2. Compile Pipeline
@@ -98,9 +98,9 @@ echo "Installing KFP and Pipeline Components..."
 pip install -q "kfp>=2.7.0" "google-cloud-pipeline-components>=2.18.0" "google-cloud-aiplatform>=1.38.0" "google-auth>=2.22.0"
 
 # Export the image URI so pipeline.py can use it during compilation
-export GRU_IMAGE_URI="$GRU_IMAGE_URI"
-export NHITS_IMAGE_URI="$NHITS_IMAGE_URI"
-export NHITS_SERVING_IMAGE_URI="$SERVING_IMAGE_URI"
+export TENSORFLOW_IMAGE_URI="$TENSORFLOW_IMAGE_URI"
+export PYTORCH_IMAGE_URI="$PYTORCH_IMAGE_URI"
+export PYTORCH_SERVING_IMAGE_URI="$PYTORCH_SERVING_IMAGE_URI"
 python pipeline.py
 
 if [ ! -f "$PIPELINE_JSON" ]; then

@@ -13,9 +13,9 @@ from google_cloud_pipeline_components.v1.model import ModelUploadOp
 import os
 
 # Get image URI from environment variable (injected by deploy script)
-GRU_IMAGE_URI = os.environ.get("GRU_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/gru-training:v1")
-NHITS_IMAGE_URI = os.environ.get("NHITS_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/nhits-training:v1")
-NHITS_SERVING_IMAGE_URI = os.environ.get("NHITS_SERVING_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/nhits-serving:v1")
+TENSORFLOW_IMAGE_URI = os.environ.get("TENSORFLOW_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/tensorflow-training:v1")
+PYTORCH_IMAGE_URI = os.environ.get("PYTORCH_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/pytorch-training:v1")
+PYTORCH_SERVING_IMAGE_URI = os.environ.get("PYTORCH_SERVING_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/pytorch-serving:v1")
 
 # 1. Component: Extract Data from BigQuery
 @dsl.container_component
@@ -25,7 +25,7 @@ def extract_bq_data(
     output_dataset: dsl.Output[dsl.Dataset]
 ):
     return dsl.ContainerSpec(
-        image=GRU_IMAGE_URI,
+        image=TENSORFLOW_IMAGE_URI,
         command=["python", "src/extract.py"],
         args=[
             "--project_id", project_id,
@@ -43,7 +43,7 @@ def preprocess_component(
     output_csv: dsl.Output[dsl.Dataset],
 ):
     return dsl.ContainerSpec(
-        image=GRU_IMAGE_URI,
+        image=TENSORFLOW_IMAGE_URI,
         command=["python", "src/preprocess.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -58,7 +58,7 @@ def train_gru_component(
     test_dataset: dsl.Output[dsl.Dataset],
 ):
     return dsl.ContainerSpec(
-        image=GRU_IMAGE_URI,
+        image=TENSORFLOW_IMAGE_URI,
         command=["python", "src/train_gru.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -76,7 +76,7 @@ def evaluate_gru_component(
     prediction_plot: dsl.Output[dsl.HTML],
 ):
     return dsl.ContainerSpec(
-        image=GRU_IMAGE_URI,
+        image=TENSORFLOW_IMAGE_URI,
         command=["python", "src/evaluate_gru.py"],
         args=[
             "--test_dataset_path", test_dataset.path,
@@ -94,7 +94,7 @@ def train_nhits_component(
     test_csv: dsl.Output[dsl.Dataset],
 ):
     return dsl.ContainerSpec(
-        image=NHITS_IMAGE_URI,
+        image=PYTORCH_IMAGE_URI,
         command=["python", "src/train_nhits.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -112,7 +112,7 @@ def evaluate_nhits_component(
     prediction_plot: dsl.Output[dsl.HTML],
 ):
     return dsl.ContainerSpec(
-        image=NHITS_IMAGE_URI,
+        image=PYTORCH_IMAGE_URI,
         command=["python", "src/evaluate_nhits.py"],
         args=[
             "--test_dataset_path", test_csv.path,
@@ -199,7 +199,7 @@ def forecasting_pipeline(
     # Step 3.5b: Attach Serving Spec (N-HiTS)
     nhits_model_with_metadata_task = attach_serving_spec(
         original_model=train_nhits_task.outputs["model_dir"],
-        serving_image_uri=NHITS_SERVING_IMAGE_URI
+        serving_image_uri=PYTORCH_SERVING_IMAGE_URI
     )
 
     # Step 4b: Upload to Model Registry (N-HiTS)
