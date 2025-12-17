@@ -89,7 +89,7 @@ else
     # Dockerfile directly. We must use a Cloud Build configuration (YAML).
     # Below, we use "Process Substitution" <(...) to pass an inline YAML config.
     echo "Building PyTorch Training Image..."
-    gcloud builds submit --tag $PYTORCH_IMAGE_URI --config <(echo "steps:
+    gcloud builds submit --config <(echo "steps:
 - name: 'gcr.io/cloud-builders/docker'
   # This step runs: docker build -t $_IMAGE_URI -f $_DOCKERFILE .
   args: ['build', '-t', '$_IMAGE_URI', '-f', '$_DOCKERFILE', '.']
@@ -105,7 +105,7 @@ substitutions:
     # --------------------------------------------------------------------------
     # Same technique as above, but pointing to Dockerfile.serving
     echo "Building PyTorch Serving Image..."
-    gcloud builds submit --tag $PYTORCH_SERVING_IMAGE_URI --config <(echo "steps:
+    gcloud builds submit --config <(echo "steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', '$_IMAGE_URI', '-f', '$_DOCKERFILE', '.']
 images:
