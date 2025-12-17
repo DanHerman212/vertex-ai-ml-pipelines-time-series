@@ -13,7 +13,8 @@ from google_cloud_pipeline_components.v1.model import ModelUploadOp
 import os
 
 # Get image URI from environment variable (injected by deploy script)
-TRAINING_IMAGE_URI = os.environ.get("TRAINING_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/gru-training:v1")
+GRU_IMAGE_URI = os.environ.get("GRU_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/gru-training:v1")
+NHITS_IMAGE_URI = os.environ.get("NHITS_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/nhits-training:v1")
 NHITS_SERVING_IMAGE_URI = os.environ.get("NHITS_SERVING_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/nhits-serving:v1")
 
 # 1. Component: Extract Data from BigQuery
@@ -24,7 +25,7 @@ def extract_bq_data(
     output_dataset: dsl.Output[dsl.Dataset]
 ):
     return dsl.ContainerSpec(
-        image=TRAINING_IMAGE_URI,
+        image=GRU_IMAGE_URI,
         command=["python", "src/extract.py"],
         args=[
             "--project_id", project_id,
@@ -42,7 +43,7 @@ def preprocess_component(
     output_csv: dsl.Output[dsl.Dataset],
 ):
     return dsl.ContainerSpec(
-        image=TRAINING_IMAGE_URI,
+        image=GRU_IMAGE_URI,
         command=["python", "src/preprocess.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -57,7 +58,7 @@ def train_gru_component(
     test_dataset: dsl.Output[dsl.Dataset],
 ):
     return dsl.ContainerSpec(
-        image=TRAINING_IMAGE_URI,
+        image=GRU_IMAGE_URI,
         command=["python", "src/train_gru.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -75,7 +76,7 @@ def evaluate_gru_component(
     prediction_plot: dsl.Output[dsl.HTML],
 ):
     return dsl.ContainerSpec(
-        image=TRAINING_IMAGE_URI,
+        image=GRU_IMAGE_URI,
         command=["python", "src/evaluate_gru.py"],
         args=[
             "--test_dataset_path", test_dataset.path,
@@ -93,7 +94,7 @@ def train_nhits_component(
     test_csv: dsl.Output[dsl.Dataset],
 ):
     return dsl.ContainerSpec(
-        image=TRAINING_IMAGE_URI,
+        image=NHITS_IMAGE_URI,
         command=["python", "src/train_nhits.py"],
         args=[
             "--input_csv", input_csv.path,
@@ -111,7 +112,7 @@ def evaluate_nhits_component(
     prediction_plot: dsl.Output[dsl.HTML],
 ):
     return dsl.ContainerSpec(
-        image=TRAINING_IMAGE_URI,
+        image=NHITS_IMAGE_URI,
         command=["python", "src/evaluate_nhits.py"],
         args=[
             "--test_dataset_path", test_csv.path,

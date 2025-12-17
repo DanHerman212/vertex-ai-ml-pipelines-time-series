@@ -31,7 +31,8 @@ set -e
 PROJECT_ID=${PROJECT_ID:-"time-series-478616"}
 REGION=${REGION:-"us-east1"}
 REPO_NAME=${REPO_NAME:-"ml-pipelines"}
-IMAGE_NAME=${IMAGE_NAME:-"gru-training"}
+GRU_IMAGE_NAME=${GRU_IMAGE_NAME:-"gru-training"}
+NHITS_IMAGE_NAME=${NHITS_IMAGE_NAME:-"nhits-training"}
 SERVING_IMAGE_NAME=${SERVING_IMAGE_NAME:-"nhits-serving"}
 # Generate a unique tag based on timestamp if not provided
 TAG=${TAG:-"v$(date +%Y%m%d-%H%M%S)"}
@@ -45,7 +46,8 @@ where extract(year from arrival_date) >= 2024'}
 
 # Derived Variables
 # Note: We keep the image in us-east1 to avoid re-pushing, but run the pipeline in the configured REGION (us-east1)
-IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}:${TAG}"
+GRU_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${GRU_IMAGE_NAME}:${TAG}"
+NHITS_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${NHITS_IMAGE_NAME}:${TAG}"
 SERVING_IMAGE_URI="us-east1-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVING_IMAGE_NAME}:${TAG}"
 PIPELINE_ROOT="gs://${BUCKET_NAME}/pipeline_root"
 PIPELINE_JSON="forecasting_pipeline.json"
@@ -53,7 +55,8 @@ PIPELINE_JSON="forecasting_pipeline.json"
 echo "========================================================"
 echo "Starting Deployment for Project: $PROJECT_ID"
 echo "Region: $REGION"
-echo "Image URI: $IMAGE_URI"
+echo "GRU Image URI: $GRU_IMAGE_URI"
+echo "N-HiTS Image URI: $NHITS_IMAGE_URI"
 echo "Serving Image URI: $SERVING_IMAGE_URI"
 echo "Pipeline Root: $PIPELINE_ROOT"
 echo "========================================================"
@@ -74,12 +77,15 @@ if [ "$1" == "--skip-build" ]; then
     echo "[1/3] Skipping Docker Build..."
 else
     echo ""
-    echo "[1/3] Building and Pushing Docker Image..."
-    # Use Cloud Build to avoid local disk space issues with large GPU images
-    echo "Submitting build to Cloud Build..."
-    gcloud builds submit --tag $IMAGE_URI .
+    echo "[1/3] Building and Pushing Docker Images..."
     
-    echo "Building and Pushing N-HiTS Serving Image..."
+    echo "Building GRU Training Image..."
+    gcloud builds submit --tag $GRU_IMAGE_URI .
+    
+    echo "Building N-HiTS Training Image..."
+    gcloud builds submit --tag $NHITS_IMAGE_URI -f Dockerfile.nhits .
+    
+    echo "Building N-HiTS Serving Image..."
     gcloud builds submit --tag $SERVING_IMAGE_URI -f Dockerfile.serving .
 fi
 
@@ -92,7 +98,8 @@ echo "Installing KFP and Pipeline Components..."
 pip install -q "kfp>=2.7.0" "google-cloud-pipeline-components>=2.18.0" "google-cloud-aiplatform>=1.38.0" "google-auth>=2.22.0"
 
 # Export the image URI so pipeline.py can use it during compilation
-export TRAINING_IMAGE_URI="$IMAGE_URI"
+export GRU_IMAGE_URI="$GRU_IMAGE_URI"
+export NHITS_IMAGE_URI="$NHITS_IMAGE_URI"
 export NHITS_SERVING_IMAGE_URI="$SERVING_IMAGE_URI"
 python pipeline.py
 

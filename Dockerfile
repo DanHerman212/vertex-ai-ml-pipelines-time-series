@@ -10,9 +10,7 @@ RUN pip install uv
 
 # Install python dependencies
 COPY requirements.txt .
-COPY requirements.nhits.txt .
 RUN uv pip install --system --no-cache -r requirements.txt
-RUN uv pip install --system --no-cache -r requirements.nhits.txt
 
 # Copy training code and data
 COPY src/ src/
