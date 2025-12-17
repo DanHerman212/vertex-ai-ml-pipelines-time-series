@@ -82,9 +82,16 @@ else
     echo "Building TensorFlow Training Image..."
     gcloud builds submit --tag $TENSORFLOW_IMAGE_URI .
     
+    # --------------------------------------------------------------------------
+    # Build 2: PyTorch Training Image
+    # --------------------------------------------------------------------------
+    # Note: 'gcloud builds submit' does not support the '-f' flag to specify a 
+    # Dockerfile directly. We must use a Cloud Build configuration (YAML).
+    # Below, we use "Process Substitution" <(...) to pass an inline YAML config.
     echo "Building PyTorch Training Image..."
     gcloud builds submit --tag $PYTORCH_IMAGE_URI --config <(echo "steps:
 - name: 'gcr.io/cloud-builders/docker'
+  # This step runs: docker build -t $_IMAGE_URI -f $_DOCKERFILE .
   args: ['build', '-t', '$_IMAGE_URI', '-f', '$_DOCKERFILE', '.']
 images:
 - '$_IMAGE_URI'
@@ -93,6 +100,10 @@ substitutions:
   _DOCKERFILE: 'Dockerfile.nhits'
 ") .
 
+    # --------------------------------------------------------------------------
+    # Build 3: PyTorch Serving Image
+    # --------------------------------------------------------------------------
+    # Same technique as above, but pointing to Dockerfile.serving
     echo "Building PyTorch Serving Image..."
     gcloud builds submit --tag $PYTORCH_SERVING_IMAGE_URI --config <(echo "steps:
 - name: 'gcr.io/cloud-builders/docker'
