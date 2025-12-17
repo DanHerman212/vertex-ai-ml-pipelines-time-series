@@ -152,11 +152,6 @@ def build_optimized_gru_model(input_shape):
     x = layers.SpatialDropout1D(0.3)(x)
 
     # Layer 2: GRU
-    x = layers.GRU(64, return_sequences=True)(x)
-    x = layers.LayerNormalization()(x)
-    x = layers.SpatialDropout1D(0.3)(x)
-
-    # Layer 3: GRU
     x = layers.GRU(32, return_sequences=False)(x)
     x = layers.LayerNormalization()(x)
     x = layers.Dropout(0.2)(x)
