@@ -4,7 +4,7 @@ This document provides an overview of the Jupyter notebooks available in the `tr
 
 ## Notebooks
 
-### 1. [Data Preprocessing](training_and_preprocessing_workflows/ml_dataset_preprocessing.ipynb)
+### 1. [Data Preprocessing](https://github.com/DanHerman212/vertex-ai-timeseries/blob/main/training_and_preprocessing_workflows/ml_dataset_preprocessing.ipynb)
 **Description:** 
 This notebook focuses on the initial stages of the machine learning pipeline. It handles:
 - Environment setup and configuration (including Google Cloud Storage authentication).
@@ -12,14 +12,14 @@ This notebook focuses on the initial stages of the machine learning pipeline. It
 - Initial data visualization and time series plotting.
 - Preprocessing steps required before model training.
 
-### 2. [N-HiTS Training Workflow](training_and_preprocessing_workflows/nhits_training_workflow.ipynb)
+### 2. [N-HiTS Training Workflow](https://github.com/DanHerman212/vertex-ai-timeseries/blob/main/training_and_preprocessing_workflows/nhits_training_workflow.ipynb)
 **Description:** 
 A specialized workflow for training the **N-HiTS (Neural Hierarchical Interpolation for Time Series)** model using the `neuralforecast` library.
 - **Goal:** Predict subway headway (Minutes Between Trains - MBT).
 - **Features:** Utilizes exogenous variables (weather), endogenous features (rolling means/stds), and cyclic features (weekly/yearly seasonality).
 - **Process:** Covers data preparation, model initialization, training, and evaluation.
 
-### 3. [TensorFlow LSTM/GRU Workflow](training_and_preprocessing_workflows/tensorflow_lstm_gru_workflow.ipynb)
+### 3. [TensorFlow LSTM/GRU Workflow](https://github.com/DanHerman212/vertex-ai-timeseries/blob/main/training_and_preprocessing_workflows/tensorflow_lstm_gru_workflow.ipynb)
 **Description:** 
 A comprehensive guide to training standard deep learning architectures using **TensorFlow/Keras**.
 - **Models Covered:** Dense (Baseline), LSTM (Long Short-Term Memory), and GRU (Gated Recurrent Unit).

@@ -144,3 +144,7 @@ pipeline_root/
 
 # OS X
 .DS_Store
+
+# Google Cloud Credentials
+storage_key.json
+**/storage_key.json
