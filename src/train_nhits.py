@@ -86,6 +86,7 @@ def train_and_save(model_dir, input_path, test_output_path=None):
             futr_exog_list=futr_exog_list,
             max_steps=1000,           
             early_stop_patience_steps=10,
+            val_check_steps=100,      # Check validation every 100 steps
             batch_size=256,           # Batch size (Aligned with GRU)
             scaler_type='robust',     
             learning_rate=1e-3,
