@@ -228,8 +228,8 @@ def forecasting_pipeline(
         test_csv=train_nhits_task.outputs["test_csv"],
         model_dir=train_nhits_task.outputs["model_dir"]
     )
-    evaluate_nhits_task.set_cpu_limit('4')
-    evaluate_nhits_task.set_memory_limit('16G')
+    evaluate_nhits_task.set_cpu_limit('8')
+    evaluate_nhits_task.set_memory_limit('32G')
     evaluate_nhits_task.set_gpu_limit(1)
     evaluate_nhits_task.set_accelerator_type('NVIDIA_TESLA_T4')
 

@@ -10,8 +10,11 @@ from neuralforecast import NeuralForecast
 from neuralforecast.losses.numpy import mae, rmse
 
 def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_path, prediction_plot_path):
-    print(f"Loading test data from {test_csv_path}...")
+    print(f"Starting evaluation script...", flush=True)
+    print(f"Loading test data from {test_csv_path}...", flush=True)
     test_df = pd.read_csv(test_csv_path)
+    
+    print(f"Test data columns: {test_df.columns.tolist()}", flush=True)
     
     # Ensure datetime
     if 'ds' in test_df.columns:
@@ -21,35 +24,70 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
     if 'unique_id' not in test_df.columns:
         test_df['unique_id'] = 'E'
 
-    print(f"Loading model from {model_dir}...")
-    nf = NeuralForecast.load(path=model_dir)
+    print(f"Loading model from {model_dir}...", flush=True)
+    try:
+        nf = NeuralForecast.load(path=model_dir)
+        print("Model loaded successfully.", flush=True)
+    except Exception as e:
+        print(f"Failed to load model: {e}", flush=True)
+        raise e
     
     # Determine input size from the loaded model to calculate test size
     # nf.models is a list of models. We assume the first one.
     input_size = nf.models[0].input_size
-    print(f"Model Input Size: {input_size}")
+    print(f"Model Input Size: {input_size}", flush=True)
+    
+    # Check for required columns (based on model configuration)
+    # We can't easily inspect the model's exog list from here without digging into private attributes
+    # but we can check if the dataframe looks reasonable.
     
     # Calculate the number of steps to predict
     # The test_df contains [lookback_window + actual_test_data]
     # We want to predict the actual_test_data
     n_test_steps = len(test_df) - input_size
+    print(f"Total rows in test_df: {len(test_df)}", flush=True)
+    print(f"Expected test steps: {n_test_steps}", flush=True)
     
     if n_test_steps <= 0:
         raise ValueError(f"Test dataframe is too small ({len(test_df)}) for input_size ({input_size}).")
         
-    print(f"Forecasting {n_test_steps} steps using cross_validation (step_size=1)...")
+    # SMOKE TEST: Try to predict just 2 steps first to verify everything works
+    print("Running SMOKE TEST (2 steps)...", flush=True)
+    try:
+        nf.cross_validation(
+            df=test_df,
+            val_size=0,
+            test_size=2,
+            n_windows=None,
+            step_size=1
+        )
+        print("SMOKE TEST PASSED.", flush=True)
+    except Exception as e:
+        print(f"SMOKE TEST FAILED: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        raise e
+
+    print(f"Forecasting {n_test_steps} steps using cross_validation (step_size=1)...", flush=True)
     
-    # Use cross_validation to predict step-by-step
-    # This simulates a production scenario where we predict the next step, then observe the actual, then predict again.
-    forecasts = nf.cross_validation(
-        df=test_df,
-        val_size=0, # We don't need a validation split here, just test
-        test_size=n_test_steps,
-        n_windows=None,
-        step_size=1
-    )
+    try:
+        # Use cross_validation to predict step-by-step
+        # This simulates a production scenario where we predict the next step, then observe the actual, then predict again.
+        forecasts = nf.cross_validation(
+            df=test_df,
+            val_size=0, # We don't need a validation split here, just test
+            test_size=n_test_steps,
+            n_windows=None,
+            step_size=1
+        )
+    except Exception as e:
+        print(f"CRITICAL ERROR during cross_validation: {e}", flush=True)
+        # Try to print more context
+        import traceback
+        traceback.print_exc()
+        raise e
     
-    print("Forecasts generated. Columns:", forecasts.columns)
+    print("Forecasts generated. Columns:", forecasts.columns, flush=True)
     
     # Calculate Metrics
     y_true = forecasts['y']
