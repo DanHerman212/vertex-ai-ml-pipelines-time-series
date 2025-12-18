@@ -1,0 +1,91 @@
+import apache_beam as beam
+from apache_beam.options.pipeline_options import PipelineOptions
+import logging
+import argparse
+from streaming.transform import ParseVehicleUpdates, AccumulateArrivals
+from streaming.prediction import VertexAIPrediction
+from streaming.sink import WriteToFirestore
+
+def run(argv=None):
+    """
+    Main entry point for the streaming pipeline.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--input_subscription',
+        help='Input Pub/Sub subscription to read from.')
+    parser.add_argument(
+        '--input_file_pattern',
+        help='Path to local JSON files for testing (e.g., streaming/json_files/*.json).')
+    parser.add_argument(
+        '--output_collection',
+        default='predictions',
+        help='Firestore collection to write results to.')
+    parser.add_argument(
+        '--project_id',
+        required=True,
+        help='GCP Project ID.')
+    parser.add_argument(
+        '--region',
+        default='us-east1',
+        help='GCP Region.')
+    parser.add_argument(
+        '--endpoint_id',
+        required=True,
+        help='Vertex AI Endpoint ID.')
+    parser.add_argument(
+        '--weather_csv',
+        default='weather_data.csv',
+        help='Path to weather data CSV for exogenous features.')
+    
+    known_args, pipeline_args = parser.parse_known_args(argv)
+    pipeline_options = PipelineOptions(pipeline_args)
+    pipeline_options.view_as(beam.options.pipeline_options.StandardOptions).streaming = True
+
+    with beam.Pipeline(options=pipeline_options) as p:
+        
+        # 1. Read Input (Pub/Sub or Files)
+        if known_args.input_subscription:
+            messages = (p 
+                | "ReadFromPubSub" >> beam.io.ReadFromPubSub(subscription=known_args.input_subscription)
+            )
+        elif known_args.input_file_pattern:
+            # For testing with local files
+            messages = (p 
+                | "ReadFromFiles" >> beam.io.ReadFromText(known_args.input_file_pattern)
+            )
+        else:
+            raise ValueError("Either --input_subscription or --input_file_pattern must be provided.")
+
+        # 2. Parse and Filter
+        parsed_updates = (messages
+            | "ParseVehicleUpdates" >> beam.ParDo(ParseVehicleUpdates(target_route_id="E", target_stop_id="F11S"))
+        )
+
+        # 3. Accumulate History (Stateful)
+        # We need to ensure data is keyed before passing to stateful DoFn
+        windows = (parsed_updates
+            | "AccumulateArrivals" >> beam.ParDo(AccumulateArrivals())
+        )
+
+        # 4. Predict with Vertex AI
+        predictions = (windows
+            | "VertexAIPrediction" >> beam.ParDo(VertexAIPrediction(
+                project_id=known_args.project_id,
+                region=known_args.region,
+                endpoint_id=known_args.endpoint_id,
+                weather_csv_path=known_args.weather_csv
+            ))
+        )
+
+        # 5. Write to Firestore
+        (predictions
+            | "WriteToFirestore" >> beam.ParDo(WriteToFirestore(
+                project_id=known_args.project_id,
+                collection_name=known_args.output_collection
+            ))
+        )
+
+if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
+    run()

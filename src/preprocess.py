@@ -125,18 +125,18 @@ def preprocess_data(input_path, output_path):
 
     # 2. Cyclic Features
     # Weekly
-    # minutes_in_week = 7 * 24 * 60
-    # df['week_sin'] = np.sin(2 * np.pi * df['ds'].dt.dayofweek * 24 * 60 / minutes_in_week)
-    # df['week_cos'] = np.cos(2 * np.pi * df['ds'].dt.dayofweek * 24 * 60 / minutes_in_week)
+    minutes_in_week = 7 * 24 * 60
+    df['week_sin'] = np.sin(2 * np.pi * df['ds'].dt.dayofweek * 24 * 60 / minutes_in_week)
+    df['week_cos'] = np.cos(2 * np.pi * df['ds'].dt.dayofweek * 24 * 60 / minutes_in_week)
 
-    # # Daily
-    # minutes_in_day = 24 * 60
-    # current_minute = df['ds'].dt.hour * 60 + df['ds'].dt.minute
-    # df['day_sin'] = np.sin(2 * np.pi * current_minute / minutes_in_day)
-    # df['day_cos'] = np.cos(2 * np.pi * current_minute / minutes_in_day)
+    # Daily
+    minutes_in_day = 24 * 60
+    current_minute = df['ds'].dt.hour * 60 + df['ds'].dt.minute
+    df['day_sin'] = np.sin(2 * np.pi * current_minute / minutes_in_day)
+    df['day_cos'] = np.cos(2 * np.pi * current_minute / minutes_in_day)
 
-    # # Fill NaNs
-    # df = df.bfill()
+    # Fill NaNs
+    df = df.bfill()
 
     # print(f"Saving processed data to {output_path}...")
     # # Ensure directory exists
