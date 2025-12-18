@@ -29,7 +29,7 @@ This document summarizes the critical technical blockers encountered during the 
 *   **Root Cause:** `matplotlib` defaults to an interactive backend (like TkAgg or X11) which requires a display. Docker containers are headless.
 *   **Resolution:** Explicitly set the backend to non-interactive at the top of the script: `matplotlib.use('Agg')`.
 
-## 2. Infrastructure & Serving (`pipeline.py`, `Dockerfile`)
+## 2. Infrastructure & Serving (`pipeline.py`, `docker/Dockerfile`)
 
 ### Blocker 1: Serving Image Version Compatibility & EOL
 *   **Symptom:** `403 Forbidden` or `Permission Denied` when attempting to use `tf2-cpu.2-17` or `tf2-cpu.2-14`.

@@ -33,7 +33,19 @@ Navigate to the `nhits_gcp_workflow` directory:
 
 ```bash
 cd nhits_gcp_workflow
-gcloud builds submit --tag $IMAGE_URI .
+# Note: Dockerfiles are located in the docker/ directory.
+# We recommend using the deploy script which handles the build configuration:
+./deploy_pipeline.sh
+
+# Or if you need to build manually with Cloud Build:
+gcloud builds submit --config <(echo "steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', '\$_IMAGE_URI', '-f', 'docker/Dockerfile', '.']
+images:
+- '\$_IMAGE_URI'
+substitutions:
+  _IMAGE_URI: '$IMAGE_URI'
+") .
 ```
 
 ### 3. Run Training Job on Vertex AI

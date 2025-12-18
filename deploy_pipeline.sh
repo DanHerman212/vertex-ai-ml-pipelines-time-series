@@ -102,7 +102,18 @@ else
     
     if [ "$SHOULD_BUILD_TF" = true ]; then
         echo "Building TensorFlow Training Image..."
-        gcloud builds submit --tag $TENSORFLOW_IMAGE_URI .
+        gcloud builds submit --config <(echo "steps:
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args: ['-c', 'docker pull \$_IMAGE_URI || exit 0']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '--cache-from', '\$_IMAGE_URI', '-t', '\$_IMAGE_URI', '-f', '\$_DOCKERFILE', '.']
+images:
+- '\$_IMAGE_URI'
+substitutions:
+  _IMAGE_URI: '$TENSORFLOW_IMAGE_URI'
+  _DOCKERFILE: 'docker/Dockerfile'
+") .
     else
         echo "Skipping TensorFlow build. Using provided URI: $TENSORFLOW_IMAGE_URI"
     fi
@@ -128,7 +139,7 @@ images:
 - '\$_IMAGE_URI'
 substitutions:
   _IMAGE_URI: '$PYTORCH_IMAGE_URI'
-  _DOCKERFILE: 'Dockerfile.nhits'
+  _DOCKERFILE: 'docker/Dockerfile.nhits'
 ") .
     else
         echo "Skipping PyTorch build. Using provided URI: $PYTORCH_IMAGE_URI"
@@ -150,7 +161,7 @@ images:
 - '\$_IMAGE_URI'
 substitutions:
   _IMAGE_URI: '$PYTORCH_SERVING_IMAGE_URI'
-  _DOCKERFILE: 'Dockerfile.serving'
+  _DOCKERFILE: 'docker/Dockerfile.serving'
 ") .
     else
         echo "Skipping PyTorch Serving build. Using provided URI: $PYTORCH_SERVING_IMAGE_URI"

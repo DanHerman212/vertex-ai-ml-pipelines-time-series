@@ -26,9 +26,10 @@ nhits_gcp_workflow/
 ├── deploy_pipeline.sh                  # Shell script to deploy the Vertex AI pipeline
 ├── deployment_blockers_summary.md      # Summary of issues blocking deployment
 ├── deployment_guide.md                 # Documentation guide for the deployment process
-├── Dockerfile                          # Default Dockerfile for the project
-├── Dockerfile.nhits                    # Dockerfile specifically for the NHITS model environment
-├── Dockerfile.serving                  # Dockerfile for the model serving container
+├── docker/                             # Docker configuration files
+│   ├── Dockerfile                      # Default Dockerfile for the project
+│   ├── Dockerfile.nhits                # Dockerfile specifically for the NHITS model environment
+│   └── Dockerfile.serving              # Dockerfile for the model serving container
 ├── pipeline.py                         # Definition of the Vertex AI pipeline structure
 ├── pipelines.png                       # Visual diagram of the pipeline architecture
 ├── README.md                           # Project overview and instructions
