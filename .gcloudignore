@@ -20,6 +20,7 @@
 # Re-ignore specific patterns that might be inside allowed directories
 # Data files
 *.csv
+!weather_data.csv
 *.json
 *.parquet
 *.pkl
