@@ -32,7 +32,7 @@ def load_data(input_path):
     print(f"Data shape after processing: {df.shape}")
     return df
 
-def train_and_save(model_dir, input_path, test_output_path=None):
+def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000):
     # 1. Load Data
     Y_df = load_data(input_path)
     
@@ -92,7 +92,7 @@ def train_and_save(model_dir, input_path, test_output_path=None):
             loss=MQLoss(quantiles=[0.1, 0.5, 0.9]), 
             hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,
-            max_steps=1000,           
+            max_steps=max_steps,           
             early_stop_patience_steps=10,
             val_check_steps=100,      # Check validation every 100 steps
             batch_size=256,           # Batch size (Aligned with GRU)
@@ -129,7 +129,8 @@ if __name__ == "__main__":
     parser.add_argument('--input_csv', type=str, required=True, help='Path to input CSV file')
     parser.add_argument('--model_dir', type=str, default='nhits_model', help='Local directory to save model')
     parser.add_argument('--test_output_csv', type=str, required=False, help='Path to save test CSV')
+    parser.add_argument('--max_steps', type=int, default=1000, help='Max training steps')
     args = parser.parse_args()
 
-    train_and_save(args.model_dir, args.input_csv, args.test_output_csv)
+    train_and_save(args.model_dir, args.input_csv, args.test_output_csv, args.max_steps)
 
