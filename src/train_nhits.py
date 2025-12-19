@@ -57,7 +57,7 @@ def load_data(input_path):
     print(f"Data shape after processing: {df.shape}")
     return df
 
-def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000, metrics_output_path=None, plot_output_path=None):
+def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000):
     # 1. Load Data
     Y_df = load_data(input_path)
     
@@ -149,141 +149,13 @@ def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000,
         shutil.rmtree(temp_log_dir)
     print("Model saved successfully.")
 
-    # 5. Forecasting and Evaluation (Integrated)
-    print("Starting in-script evaluation...")
-
-    # Use the full dataframe (Y_df) for cross_validation to allow it to see history
-    # We want to evaluate on the test set.
-    # The user code suggests subsetting for speed.
-    
-    # Let's use the test_size calculated earlier, but cap it if needed for speed
-    # User requested subset_test_size = 1000
-    subset_test_size = min(1000, len(test_df))
-    print(f"Evaluating on last {subset_test_size} steps...")
-    
-    # Using cross_validation to simulate production behavior on the test set
-    forecasts = nf.cross_validation(
-        df=Y_df,
-        val_size=subset_test_size,
-        test_size=subset_test_size,
-        n_windows=None, # Automatically determined by val_size/test_size logic if not set
-        step_size=1     # Predict 1 step at a time
-    )
-
-    # Calculate Metrics
-    y_true = forecasts['y']
-    
-    # Determine prediction column
-    if 'NHITS-median' in forecasts.columns:
-        y_pred = forecasts['NHITS-median']
-    elif 'NHITS' in forecasts.columns:
-        y_pred = forecasts['NHITS']
-    else:
-        # Fallback to first prediction column if specific names aren't found
-        pred_cols = [c for c in forecasts.columns if c not in ['unique_id', 'ds', 'cutoff', 'y']]
-        if pred_cols:
-            y_pred = forecasts[pred_cols[0]]
-        else:
-            raise ValueError("No prediction columns found in forecasts")
-
-    mae_val = mae(y_true, y_pred)
-    rmse_val = rmse(y_true, y_pred)
-    print(f"MAE: {mae_val:.4f}")
-    print(f"RMSE: {rmse_val:.4f}")
-
-    if metrics_output_path:
-        metrics_data = {
-            "metrics": [
-                {
-                    "name": "mae",
-                    "numberValue": float(mae_val),
-                    "format": "RAW"
-                },
-                {
-                    "name": "rmse",
-                    "numberValue": float(rmse_val),
-                    "format": "RAW"
-                }
-            ]
-        }
-        print(f"Saving metrics to {metrics_output_path}...")
-        os.makedirs(os.path.dirname(metrics_output_path), exist_ok=True)
-        with open(metrics_output_path, 'w') as f:
-            json.dump(metrics_data, f)
-
-    ## 9. Visualizing Predictions vs Actuals
-
-    # Plot a segment of the forecasts
-    plot_df = forecasts.iloc[:200].copy() # First 200 predictions
-    
-    # Debug: Check if actuals are present
-    if plot_df['y'].isnull().all():
-        print("WARNING: 'y' (Actuals) column in plot dataframe is entirely NaN. Check timestamp alignment.")
-    else:
-        print(f"Plotting {plot_df['y'].count()} actual values against predictions.")
-
-    plt.figure(figsize=(15, 5))
-    plt.plot(plot_df['ds'], plot_df['y'], label='Actual MBT', color='black', alpha=0.7)
-    
-    if 'NHITS-median' in plot_df.columns:
-        plt.plot(plot_df['ds'], plot_df['NHITS-median'], label='Predicted Median MBT', color='blue', linewidth=2)
-    elif 'NHITS' in plot_df.columns:
-        plt.plot(plot_df['ds'], plot_df['NHITS'], label='Predicted MBT', color='blue', linewidth=2)
-        
-    # Updated to use 80% prediction interval columns (derived from 0.1 and 0.9 quantiles)
-    lo_col = None
-    hi_col = None
-    
-    if 'NHITS-lo-80.0' in plot_df.columns: lo_col = 'NHITS-lo-80.0'
-    elif 'NHITS-lo-80' in plot_df.columns: lo_col = 'NHITS-lo-80'
-    
-    if 'NHITS-hi-80.0' in plot_df.columns: hi_col = 'NHITS-hi-80.0'
-    elif 'NHITS-hi-80' in plot_df.columns: hi_col = 'NHITS-hi-80'
-
-    if lo_col and hi_col:
-        plt.fill_between(plot_df['ds'], plot_df[lo_col], plot_df[hi_col], color='blue', alpha=0.2, label='80% Confidence Interval')
-        
-    plt.title('Subway Headway Prediction: Actual vs Predicted (with Uncertainty)')
-    plt.xlabel('Time')
-    plt.ylabel('Minutes Between Trains (MBT)')
-    plt.legend()
-
-    # Save the figure
-    plot_output_path_png = os.path.join(model_dir, 'subway_headway_forecast.png')
-    plt.savefig(plot_output_path_png, bbox_inches='tight')
-    print(f"Plot saved as '{plot_output_path_png}'")
-
-    if plot_output_path:
-        # Save as HTML for KFP visualization
-        buf = BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight')
-        buf.seek(0)
-        img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-        
-        html_content = f"""
-        <html>
-        <head><title>N-HiTS Forecast</title></head>
-        <body>
-            <h1>N-HiTS Forecast vs Actuals</h1>
-            <img src="data:image/png;base64,{img_base64}" alt="Forecast Plot">
-        </body>
-        </html>
-        """
-        
-        print(f"Saving plot HTML to {plot_output_path}...")
-        os.makedirs(os.path.dirname(plot_output_path), exist_ok=True)
-        with open(plot_output_path, 'w') as f:
-            f.write(html_content)
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_csv', type=str, required=True, help='Path to input CSV file')
     parser.add_argument('--model_dir', type=str, default='nhits_model', help='Local directory to save model')
     parser.add_argument('--test_output_csv', type=str, required=False, help='Path to save test CSV')
     parser.add_argument('--max_steps', type=int, default=1000, help='Max training steps')
-    parser.add_argument('--metrics_output_path', type=str, required=False, help='Path to save metrics JSON')
-    parser.add_argument('--plot_output_path', type=str, required=False, help='Path to save plot HTML')
     args = parser.parse_args()
 
-    train_and_save(args.model_dir, args.input_csv, args.test_output_csv, args.max_steps, args.metrics_output_path, args.plot_output_path)
+    train_and_save(args.model_dir, args.input_csv, args.test_output_csv, args.max_steps)
 
