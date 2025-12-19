@@ -28,6 +28,14 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
     try:
         nf = NeuralForecast.load(path=model_dir)
         print("Model loaded successfully.", flush=True)
+        
+        # CRITICAL FIX: Disable EarlyStopping for evaluation
+        # cross_validation creates a new Trainer. If early_stop_patience_steps is set, 
+        # it expects validation metrics (ptl/val_loss). With val_size=0, these aren't produced.
+        for model in nf.models:
+            print(f"Disabling EarlyStopping for model {model}...", flush=True)
+            model.early_stop_patience_steps = None
+            
     except Exception as e:
         print(f"Failed to load model: {e}", flush=True)
         raise e
