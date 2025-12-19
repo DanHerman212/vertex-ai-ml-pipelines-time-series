@@ -6,7 +6,11 @@ import torch
 from neuralforecast import NeuralForecast
 from neuralforecast.models import NHITS
 from neuralforecast.losses.pytorch import MAE, MQLoss
+from neuralforecast.losses.numpy import mae, rmse
 from pytorch_lightning.loggers import CSVLogger
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 # 1. Load and Prepare Data
 def load_data(input_path):
@@ -123,6 +127,73 @@ def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000)
     if os.path.exists(temp_log_dir):
         shutil.rmtree(temp_log_dir)
     print("Model saved successfully.")
+
+    # 5. Forecasting and Evaluation (Integrated)
+    print("Starting in-script evaluation...")
+
+    # Use the full dataframe (Y_df) for cross_validation to allow it to see history
+    # We want to evaluate on the test set.
+    # The user code suggests subsetting for speed.
+    
+    # Let's use the test_size calculated earlier, but cap it if needed for speed
+    # User requested subset_test_size = 1000
+    subset_test_size = min(1000, len(test_df))
+    print(f"Evaluating on last {subset_test_size} steps...")
+    
+    # Using cross_validation to simulate production behavior on the test set
+    forecasts = nf.cross_validation(
+        df=Y_df,
+        val_size=subset_test_size,
+        test_size=subset_test_size,
+        n_windows=None, # Automatically determined by val_size/test_size logic if not set
+        step_size=1     # Predict 1 step at a time
+    )
+
+    # Calculate Metrics
+    y_true = forecasts['y']
+    
+    # Determine prediction column
+    if 'NHITS-median' in forecasts.columns:
+        y_pred = forecasts['NHITS-median']
+    elif 'NHITS' in forecasts.columns:
+        y_pred = forecasts['NHITS']
+    else:
+        # Fallback to first prediction column if specific names aren't found
+        pred_cols = [c for c in forecasts.columns if c not in ['unique_id', 'ds', 'cutoff', 'y']]
+        if pred_cols:
+            y_pred = forecasts[pred_cols[0]]
+        else:
+            raise ValueError("No prediction columns found in forecasts")
+
+    print(f"MAE: {mae(y_true, y_pred):.4f}")
+    print(f"RMSE: {rmse(y_true, y_pred):.4f}")
+
+    ## 9. Visualizing Predictions vs Actuals
+
+    # Plot a segment of the forecasts
+    plot_df = forecasts.iloc[:200] # First 200 predictions
+
+    plt.figure(figsize=(15, 5))
+    plt.plot(plot_df['ds'], plot_df['y'], label='Actual MBT', color='black', alpha=0.7)
+    
+    if 'NHITS-median' in plot_df.columns:
+        plt.plot(plot_df['ds'], plot_df['NHITS-median'], label='Predicted Median MBT', color='blue', linewidth=2)
+    elif 'NHITS' in plot_df.columns:
+        plt.plot(plot_df['ds'], plot_df['NHITS'], label='Predicted MBT', color='blue', linewidth=2)
+        
+    # Updated to use 80% prediction interval columns (derived from 0.1 and 0.9 quantiles)
+    if 'NHITS-lo-80.0' in plot_df.columns and 'NHITS-hi-80.0' in plot_df.columns:
+        plt.fill_between(plot_df['ds'], plot_df['NHITS-lo-80.0'], plot_df['NHITS-hi-80.0'], color='blue', alpha=0.2, label='80% Confidence Interval')
+        
+    plt.title('Subway Headway Prediction: Actual vs Predicted (with Uncertainty)')
+    plt.xlabel('Time')
+    plt.ylabel('Minutes Between Trains (MBT)')
+    plt.legend()
+
+    # Save the figure
+    plot_output_path = os.path.join(model_dir, 'subway_headway_forecast.png')
+    plt.savefig(plot_output_path, bbox_inches='tight')
+    print(f"Plot saved as '{plot_output_path}'")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
