@@ -37,6 +37,9 @@ def run(argv=None):
         '--weather_csv',
         default='weather_data.csv',
         help='Path to weather data CSV for exogenous features.')
+    parser.add_argument(
+        '--weather_api_key',
+        help='Visual Crossing API Key for live weather data.')
     
     known_args, pipeline_args = parser.parse_known_args(argv)
     pipeline_options = PipelineOptions(pipeline_args)
@@ -81,7 +84,8 @@ def run(argv=None):
                 project_id=known_args.project_id,
                 region=known_args.region,
                 endpoint_id=known_args.endpoint_id,
-                weather_csv_path=known_args.weather_csv
+                weather_csv_path=known_args.weather_csv,
+                weather_api_key=known_args.weather_api_key
             ))
         )
 

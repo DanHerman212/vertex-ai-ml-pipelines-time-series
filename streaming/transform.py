@@ -144,9 +144,9 @@ class AccumulateArrivals(beam.DoFn):
             # Sort by timestamp
             current_history.sort(key=lambda x: x['timestamp'])
             
-            # Keep only the last 150
-            if len(current_history) > 150:
-                current_history = current_history[-150:]
+            # Keep only the last 160
+            if len(current_history) > 160:
+                current_history = current_history[-160:]
             
             # Clear and rewrite state
             history_state.clear()

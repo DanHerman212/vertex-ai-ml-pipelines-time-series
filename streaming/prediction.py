@@ -5,6 +5,7 @@ import numpy as np
 from google.cloud import aiplatform
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
+from streaming.weather import WeatherFetcher
 
 class VertexAIPrediction(beam.DoFn):
     """
@@ -12,12 +13,15 @@ class VertexAIPrediction(beam.DoFn):
     generates exogenous features (rolling stats, calendar, weather),
     and calls the Vertex AI Endpoint for a forecast.
     """
-    def __init__(self, project_id, region, endpoint_id, weather_csv_path=None):
+    def __init__(self, project_id, region, endpoint_id, weather_csv_path=None, weather_api_key=None):
         self.project_id = project_id
         self.region = region
         self.endpoint_id = endpoint_id
         self.weather_csv_path = weather_csv_path
+        self.weather_api_key = weather_api_key
         self.client = None
+        self.weather_df = None
+        self.weather_fetcher = None
         self.weather_df = None
 
     def setup(self):
@@ -27,7 +31,12 @@ class VertexAIPrediction(beam.DoFn):
         aiplatform.init(project=self.project_id, location=self.region)
         self.endpoint = aiplatform.Endpoint(self.endpoint_id)
         
-        # Load weather data if provided
+        # Initialize Weather Fetcher if API key is present
+        if self.weather_api_key:
+            self.weather_fetcher = WeatherFetcher(self.weather_api_key)
+            logging.info("WeatherFetcher initialized.")
+        
+        # Load weather data if provided (Fallback)
         if self.weather_csv_path:
             try:
                 # In a real Dataflow job, this file needs to be accessible (e.g., in GCS or copied to worker)
@@ -51,6 +60,16 @@ class VertexAIPrediction(beam.DoFn):
             'snowdepth': 0.0, 'visibility': 10.0, 'windspeed': 0.0
         }
         
+        # 1. Try Live Fetcher
+        if self.weather_fetcher:
+            try:
+                live_features = self.weather_fetcher.get_features(timestamp)
+                if live_features:
+                    return live_features
+            except Exception as e:
+                logging.warning(f"Live weather fetch failed: {e}")
+
+        # 2. Fallback to CSV
         if self.weather_df is not None:
             try:
                 # Round to nearest hour for lookup
