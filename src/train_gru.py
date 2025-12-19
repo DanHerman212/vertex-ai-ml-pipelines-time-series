@@ -213,17 +213,17 @@ if __name__ == "__main__":
         print(f"Loading best model from {best_model_path}...")
         best_model = keras.models.load_model(best_model_path)
         
-        print(f"Saving model to {args.model_dir} in Keras format...")
-        best_model.save(os.path.join(args.model_dir, "gru_model.keras"))
-        
         print(f"Saving model to {args.model_dir} in SavedModel format...")
         best_model.export(args.model_dir)
+
+        print(f"Saving model to {args.model_dir} in Keras format...")
+        best_model.save(os.path.join(args.model_dir, "gru_model.keras"))
     else:
         print(f"Best model not found. Saving current model to {args.model_dir}...")
-        model.save(os.path.join(args.model_dir, "gru_model.keras"))
-        
         print(f"Saving model to {args.model_dir} in SavedModel format...")
         model.export(args.model_dir)
+
+        model.save(os.path.join(args.model_dir, "gru_model.keras"))
 
     # 8. Save Scaler (after model export to ensure directory exists and isn't overwritten)
     print(f"Saving scaler to {args.model_dir}...")

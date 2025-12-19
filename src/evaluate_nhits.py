@@ -199,11 +199,16 @@ def plot_loss(model_dir, output_path):
     logs_dir = os.path.join(model_dir, "training_logs")
     if not os.path.exists(logs_dir):
         print("No training logs found.")
+        # Write placeholder to ensure artifact exists
+        with open(output_path, 'w') as f:
+            f.write("<html><body><h1>No training logs found</h1></body></html>")
         return
         
     versions = [d for d in os.listdir(logs_dir) if d.startswith("version_")]
     if not versions:
         print("No version directory found in logs.")
+        with open(output_path, 'w') as f:
+            f.write("<html><body><h1>No version directory found in logs</h1></body></html>")
         return
         
     # Sort versions to get the latest

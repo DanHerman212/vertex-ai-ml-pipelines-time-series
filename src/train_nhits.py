@@ -76,9 +76,11 @@ def train_and_save(model_dir, input_path, test_output_path=None):
     hist_exog_list = ['rolling_mean_10', 'rolling_std_10', 'rolling_mean_50', 'rolling_std_50', 'rolling_max_10']
     
     # Setup Logger
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
-    logger = CSVLogger(save_dir=model_dir, name="training_logs")
+    # Use a temporary directory for logs to prevent NeuralForecast.save(overwrite=True) from deleting them
+    import tempfile
+    import shutil
+    temp_log_dir = tempfile.mkdtemp()
+    logger = CSVLogger(save_dir=temp_log_dir, name="training_logs")
 
     # 2. Define Model
     models = [
@@ -122,6 +124,17 @@ def train_and_save(model_dir, input_path, test_output_path=None):
         
     print(f"Saving model to {model_dir}...")
     nf.save(path=model_dir, model_index=None, overwrite=True)
+    
+    # Restore logs
+    src_log_dir = os.path.join(temp_log_dir, "training_logs")
+    dst_log_dir = os.path.join(model_dir, "training_logs")
+    if os.path.exists(src_log_dir):
+        print(f"Copying logs from {src_log_dir} to {dst_log_dir}...")
+        if os.path.exists(dst_log_dir):
+            shutil.rmtree(dst_log_dir)
+        shutil.copytree(src_log_dir, dst_log_dir)
+    
+    shutil.rmtree(temp_log_dir)
     print("Model saved successfully.")
 
 if __name__ == "__main__":

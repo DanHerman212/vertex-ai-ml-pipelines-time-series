@@ -40,6 +40,9 @@ def plot_loss(model_dir, output_path):
     history_path = os.path.join(model_dir, "history.json")
     if not os.path.exists(history_path):
         print(f"No history found at {history_path}, skipping plot.")
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, 'w') as f:
+            f.write("<html><body><h1>No training history found</h1></body></html>")
         return
 
     with open(history_path, 'r') as f:
