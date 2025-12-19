@@ -3,3 +3,4 @@ utilsforecast
 google-cloud-storage
 google-cloud-bigquery
 joblib
+matplotlib
