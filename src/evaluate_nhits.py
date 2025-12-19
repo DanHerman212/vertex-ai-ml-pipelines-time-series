@@ -7,7 +7,9 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from neuralforecast import NeuralForecast
-from neuralforecast.losses.numpy import mae, rmse
+# from neuralforecast.losses.numpy import mae, rmse # Replaced by utilsforecast
+from utilsforecast.evaluation import evaluate
+from utilsforecast.losses import mae, rmse, scaled_crps
 
 def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_path, prediction_plot_path):
     print(f"Starting evaluation script...", flush=True)
@@ -98,33 +100,89 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
     
     print("Forecasts generated. Columns:", forecasts.columns, flush=True)
     
-    # Calculate Metrics
-    y_true = forecasts['y']
-    # Use median prediction if available (MQLoss), else 'NHITS'
-    y_pred_col = 'NHITS-median' if 'NHITS-median' in forecasts.columns else 'NHITS'
-    y_pred = forecasts[y_pred_col]
+    # Calculate Metrics using utilsforecast
+    # Prepare dataframe: Rename NHITS-median to NHITS for standard evaluation
+    eval_df = forecasts.copy()
+    if 'NHITS-median' in eval_df.columns:
+        eval_df = eval_df.rename(columns={'NHITS-median': 'NHITS'})
+
+    # Fix column names for quantiles (remove .0 suffix)
+    # utilsforecast expects 'NHITS-lo-80', but NeuralForecast outputs 'NHITS-lo-80.0'
+    rename_dict = {}
+    for col in eval_df.columns:
+        if col.endswith('.0'):
+            new_col = col.replace('.0', '')
+            rename_dict[col] = new_col
+            
+    if rename_dict:
+        print(f"Renaming columns for utilsforecast compatibility: {rename_dict}", flush=True)
+        eval_df = eval_df.rename(columns=rename_dict)
+        
+    # Define metrics
+    metrics = [mae, rmse, scaled_crps]
     
-    mae_val = mae(y_true, y_pred)
-    rmse_val = rmse(y_true, y_pred)
-    
-    print(f"Test MAE: {mae_val}")
-    print(f"Test RMSE: {rmse_val}")
-    
+    try:
+        print("Calculating metrics using utilsforecast...", flush=True)
+        # We pass level=[80] because our model was trained with quantiles 0.1, 0.5, 0.9
+        # which corresponds to an 80% prediction interval (10% to 90%).
+        # The columns NHITS-lo-80.0 and NHITS-hi-80.0 should exist.
+        evaluation_df = evaluate(
+            eval_df,
+            metrics=metrics,
+            models=['NHITS'],
+            target_col='y',
+            id_col='unique_id',
+            time_col='ds',
+            level=[80]
+        )
+        
+        print("Evaluation results:", evaluation_df, flush=True)
+        
+        # Aggregate results (mean over unique_ids)
+        summary = evaluation_df.drop(columns=['unique_id']).groupby('metric').mean().reset_index()
+        
+        mae_val = summary.loc[summary['metric'] == 'mae', 'NHITS'].values[0]
+        rmse_val = summary.loc[summary['metric'] == 'rmse', 'NHITS'].values[0]
+        crps_val = summary.loc[summary['metric'] == 'scaled_crps', 'NHITS'].values[0]
+        
+        print(f"Test MAE: {mae_val}")
+        print(f"Test RMSE: {rmse_val}")
+        print(f"Test Scaled CRPS: {crps_val}")
+        
+    except Exception as e:
+        print(f"Error using utilsforecast: {e}. Falling back to manual calculation.", flush=True)
+        # Fallback
+        y_true = forecasts['y']
+        y_pred = forecasts['NHITS-median'] if 'NHITS-median' in forecasts.columns else forecasts['NHITS']
+        from sklearn.metrics import mean_absolute_error, mean_squared_error
+        mae_val = mean_absolute_error(y_true, y_pred)
+        rmse_val = np.sqrt(mean_squared_error(y_true, y_pred))
+        crps_val = None
+        print(f"Test MAE: {mae_val}")
+        print(f"Test RMSE: {rmse_val}")
+
     # Save Metrics
-    metrics = {
-        "metrics": [
-            {
-                "name": "mae",
-                "numberValue": float(mae_val),
-                "format": "RAW"
-            },
-            {
-                "name": "rmse",
-                "numberValue": float(rmse_val),
-                "format": "RAW"
-            }
-        ]
-    }
+    metrics_list = [
+        {
+            "name": "mae",
+            "numberValue": float(mae_val),
+            "format": "RAW"
+        },
+        {
+            "name": "rmse",
+            "numberValue": float(rmse_val),
+            "format": "RAW"
+        }
+    ]
+    
+    if crps_val is not None:
+        metrics_list.append({
+            "name": "scaled_crps",
+            "numberValue": float(crps_val),
+            "format": "RAW"
+        })
+        
+    metrics = {"metrics": metrics_list}
     
     os.makedirs(os.path.dirname(metrics_output_path), exist_ok=True)
     with open(metrics_output_path, 'w') as f:
