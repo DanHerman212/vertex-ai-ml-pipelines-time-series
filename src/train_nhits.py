@@ -32,6 +32,9 @@ def load_data(input_path):
         
     # Ensure datetime
     df['ds'] = pd.to_datetime(df['ds'])
+    # Remove timezone if present to avoid merge issues with NeuralForecast generated dates
+    if df['ds'].dt.tz is not None:
+        df['ds'] = df['ds'].dt.tz_localize(None)
     
     # Add unique_id
     df['unique_id'] = 'E'
