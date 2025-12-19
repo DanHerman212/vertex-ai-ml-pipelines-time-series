@@ -74,15 +74,9 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
     if n_test_steps <= 0:
         raise ValueError(f"Test dataframe is too small ({len(test_df)}) for input_size ({input_size}) + val_size ({val_size}).")
         
-    # SMOKE TEST: Try to predict just 2 steps first to verify everything works
-    # Removed smoke test as it was failing for the same reason (val_size=0).
-    # We will fix the main call directly.
-
     print(f"Forecasting {n_test_steps} steps using predict_insample (faster than cross_validation)...", flush=True)
     
     try:
-        
-        
         forecasts = nf.cross_validation(
             df=test_df,
             val_size=val_size, 
@@ -105,6 +99,11 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
     eval_df = forecasts.copy()
     if 'NHITS-median' in eval_df.columns:
         eval_df = eval_df.rename(columns={'NHITS-median': 'NHITS'})
+        
+    # Drop cutoff column if present, otherwise utilsforecast calculates metrics per cutoff (window)
+    # resulting in MAE == RMSE for step_size=1
+    if 'cutoff' in eval_df.columns:
+        eval_df = eval_df.drop(columns=['cutoff'])
 
     # Fix column names for quantiles (remove .0 suffix)
     # utilsforecast expects 'NHITS-lo-80', but NeuralForecast outputs 'NHITS-lo-80.0'
