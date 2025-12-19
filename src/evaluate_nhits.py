@@ -60,30 +60,19 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
         raise ValueError(f"Test dataframe is too small ({len(test_df)}) for input_size ({input_size}).")
         
     # SMOKE TEST: Try to predict just 2 steps first to verify everything works
-    print("Running SMOKE TEST (2 steps)...", flush=True)
-    try:
-        nf.cross_validation(
-            df=test_df,
-            val_size=0,
-            test_size=2,
-            n_windows=None,
-            step_size=1
-        )
-        print("SMOKE TEST PASSED.", flush=True)
-    except Exception as e:
-        print(f"SMOKE TEST FAILED: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-        raise e
+    # Removed smoke test as it was failing for the same reason (val_size=0).
+    # We will fix the main call directly.
 
     print(f"Forecasting {n_test_steps} steps using cross_validation (step_size=1)...", flush=True)
     
     try:
         # Use cross_validation to predict step-by-step
-        # This simulates a production scenario where we predict the next step, then observe the actual, then predict again.
+        # We set val_size=10 to ensure the EarlyStopping callback has a validation set to evaluate,
+        # preventing the "Early stopping conditioned on metric ptl/val_loss" error.
+        # This mimics the behavior in the training notebook where a validation set is present.
         forecasts = nf.cross_validation(
             df=test_df,
-            val_size=0, # We don't need a validation split here, just test
+            val_size=10, 
             test_size=n_test_steps,
             n_windows=None,
             step_size=1
