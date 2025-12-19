@@ -237,7 +237,15 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
         plot_loss(model_dir, plot_output_path)
         
     if prediction_plot_path:
-        plot_predictions(forecasts, prediction_plot_path)
+        # Prepare metrics dictionary for display
+        metrics_dict = {
+            "MAE": mae_val,
+            "RMSE": rmse_val
+        }
+        if crps_val is not None:
+            metrics_dict["Scaled CRPS"] = crps_val
+            
+        plot_predictions(forecasts, prediction_plot_path, metrics_dict)
 
 def plot_loss(model_dir, output_path):
     logs_dir = os.path.join(model_dir, "training_logs")
@@ -299,7 +307,7 @@ def plot_loss(model_dir, output_path):
     
     save_plot_html(output_path, "Training Loss")
 
-def plot_predictions(forecasts_df, output_path):
+def plot_predictions(forecasts_df, output_path, metrics_dict=None):
     # Prepare data for plotting
     # Ensure we have actuals and predictions
     
@@ -423,9 +431,9 @@ def plot_predictions(forecasts_df, output_path):
     
     plt.tight_layout()
     
-    save_plot_html(output_path, "Prediction Plot")
+    save_plot_html(output_path, "Prediction Plot", metrics_dict)
 
-def save_plot_html(output_path, title):
+def save_plot_html(output_path, title, metrics_dict=None):
     import base64
     from io import BytesIO
     
@@ -434,12 +442,39 @@ def save_plot_html(output_path, title):
     buf.seek(0)
     img_base64 = base64.b64encode(buf.read()).decode('utf-8')
     
+    metrics_html = ""
+    if metrics_dict:
+        rows = ""
+        for k, v in metrics_dict.items():
+            rows += f"<tr><td>{k}</td><td>{v:.4f}</td></tr>"
+        metrics_html = f"""
+        <div style="margin-bottom: 20px;">
+            <h3>Metrics</h3>
+            <table border="1" style="border-collapse: collapse; width: 300px;">
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 8px; text-align: left;">Metric</th>
+                    <th style="padding: 8px; text-align: left;">Value</th>
+                </tr>
+                {rows}
+            </table>
+        </div>
+        """
+    
     html_content = f"""
     <html>
-    <head><title>{title}</title></head>
+    <head>
+        <title>{title}</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            table {{ border: 1px solid #ddd; }}
+            th, td {{ text-align: left; padding: 8px; }}
+            tr:nth-child(even) {{ background-color: #f9f9f9; }}
+        </style>
+    </head>
     <body>
         <h1>{title}</h1>
-        <img src="data:image/png;base64,{img_base64}" alt="{title}">
+        {metrics_html}
+        <img src="data:image/png;base64,{img_base64}" alt="{title}" style="max-width: 100%; border: 1px solid #ddd;">
     </body>
     </html>
     """

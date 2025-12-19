@@ -114,7 +114,7 @@ def plot_loss(model_dir, output_path):
     
     print(f"Loss plot saved to {output_path}")
 
-def plot_evaluation_report(actuals, predictions, output_path):
+def plot_evaluation_report(actuals, predictions, output_path, metrics_dict=None):
     # Ensure 1D arrays
     actuals = actuals.flatten()
     predictions = predictions.flatten()
@@ -204,14 +204,39 @@ def plot_evaluation_report(actuals, predictions, output_path):
     buf.seek(0)
     img_base64 = base64.b64encode(buf.read()).decode('utf-8')
     
+    metrics_html = ""
+    if metrics_dict:
+        rows = ""
+        for k, v in metrics_dict.items():
+            rows += f"<tr><td>{k}</td><td>{v:.4f}</td></tr>"
+        metrics_html = f"""
+        <div style="margin-bottom: 20px;">
+            <h3>Metrics</h3>
+            <table border="1" style="border-collapse: collapse; width: 300px;">
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 8px; text-align: left;">Metric</th>
+                    <th style="padding: 8px; text-align: left;">Value</th>
+                </tr>
+                {rows}
+            </table>
+        </div>
+        """
+    
     html_content = f"""
     <html>
     <head>
         <title>Model Evaluation Report</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            table {{ border: 1px solid #ddd; }}
+            th, td {{ text-align: left; padding: 8px; }}
+            tr:nth-child(even) {{ background-color: #f9f9f9; }}
+        </style>
     </head>
     <body>
         <h1>Model Evaluation Report</h1>
-        <img src="data:image/png;base64,{img_base64}" alt="Evaluation Plots">
+        {metrics_html}
+        <img src="data:image/png;base64,{img_base64}" alt="Evaluation Plots" style="max-width: 100%; border: 1px solid #ddd;">
     </body>
     </html>
     """
@@ -244,7 +269,8 @@ if __name__ == "__main__":
         
     # 4. Plot Evaluation Report (Time Series + Residuals)
     if args.prediction_plot_path:
-        plot_evaluation_report(actuals, predictions, args.prediction_plot_path)
+        metrics_dict = {"MAE": mae}
+        plot_evaluation_report(actuals, predictions, args.prediction_plot_path, metrics_dict)
     
     # 5. Save Metrics for Vertex AI
     metrics = {
