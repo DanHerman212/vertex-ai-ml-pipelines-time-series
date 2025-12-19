@@ -100,24 +100,16 @@ def train_and_save(model_dir, input_path, test_output_path=None):
             learning_rate=1e-3,
             n_pool_kernel_size=[2, 2, 2], 
             n_freq_downsample=[168, 24, 1],
-            accelerator="gpu" if torch.cuda.is_available() else "cpu",
-            logger=logger      # Pass logger to capture history
+            accelerator="gpu" if torch.cuda.is_available() else "cpu"
+            # logger=logger      # Removed to prevent path issues during loading
         )
     ]
     
     # Initialize NeuralForecast
-    # Assuming 'H' freq, or let it infer/use integer index if irregular
-    # If data is irregular (train arrivals), 'H' might be wrong. 
-    # But NHITS can handle integer index if we don't pass freq, or pass freq=1.
-    # Let's try to infer or use a dummy freq if it's just sequence data.
-    # For this dataset, it seems to be event-based (train arrivals), not strictly hourly.
-    # So we might want to treat it as a sequence.
-    nf = NeuralForecast(models=models, freq='H') # 'M' is minute? No, let's use default or 'auto'
+    nf = NeuralForecast(models=models, freq='H')
     
     # 3. Train Model
     print("Training NHITS model...")
-    # We pass only the train+val portion. 
-    # val_size is the number of samples at the end of this dataframe to use for validation.
     nf.fit(df=train_val_df, val_size=val_size)
     
     # 4. Save Model
@@ -127,16 +119,9 @@ def train_and_save(model_dir, input_path, test_output_path=None):
     print(f"Saving model to {model_dir}...")
     nf.save(path=model_dir, model_index=None, overwrite=True)
     
-    # Restore logs
-    src_log_dir = os.path.join(temp_log_dir, "training_logs")
-    dst_log_dir = os.path.join(model_dir, "training_logs")
-    if os.path.exists(src_log_dir):
-        print(f"Copying logs from {src_log_dir} to {dst_log_dir}...")
-        if os.path.exists(dst_log_dir):
-            shutil.rmtree(dst_log_dir)
-        shutil.copytree(src_log_dir, dst_log_dir)
-    
-    shutil.rmtree(temp_log_dir)
+    # Cleanup temp logs if they were created (but we removed logger injection)
+    if os.path.exists(temp_log_dir):
+        shutil.rmtree(temp_log_dir)
     print("Model saved successfully.")
 
 if __name__ == "__main__":
