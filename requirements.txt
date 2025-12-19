@@ -10,3 +10,4 @@ joblib
 scikit-learn
 matplotlib
 
+apache-beam[gcp]

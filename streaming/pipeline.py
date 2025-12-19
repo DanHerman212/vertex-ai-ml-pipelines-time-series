@@ -2,7 +2,7 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 import logging
 import argparse
-from streaming.transform import ParseVehicleUpdates, AccumulateArrivals
+from streaming.transform import ParseVehicleUpdates, CalculateTripDuration, AccumulateArrivals
 from streaming.prediction import VertexAIPrediction
 from streaming.sink import WriteToFirestore
 
@@ -58,17 +58,24 @@ def run(argv=None):
             raise ValueError("Either --input_subscription or --input_file_pattern must be provided.")
 
         # 2. Parse and Filter
+        # Yields (trip_id, update_dict)
         parsed_updates = (messages
-            | "ParseVehicleUpdates" >> beam.ParDo(ParseVehicleUpdates(target_route_id="E", target_stop_id="F11S"))
+            | "ParseVehicleUpdates" >> beam.ParDo(ParseVehicleUpdates(target_route_id="E", origin_stop_id="G05S", target_stop_id="F11S"))
         )
 
-        # 3. Accumulate History (Stateful)
-        # We need to ensure data is keyed before passing to stateful DoFn
-        windows = (parsed_updates
+        # 3. Calculate Duration
+        # Yields (route_stop_key, update_with_duration)
+        durations = (parsed_updates
+            | "CalculateTripDuration" >> beam.ParDo(CalculateTripDuration(origin_stop_id="G05S", target_stop_id="F11S"))
+        )
+
+        # 4. Accumulate History (Stateful)
+        # Yields {'key': key, 'timestamps': [...], 'durations': [...], ...}
+        windows = (durations
             | "AccumulateArrivals" >> beam.ParDo(AccumulateArrivals())
         )
 
-        # 4. Predict with Vertex AI
+        # 5. Predict with Vertex AI
         predictions = (windows
             | "VertexAIPrediction" >> beam.ParDo(VertexAIPrediction(
                 project_id=known_args.project_id,
@@ -78,7 +85,7 @@ def run(argv=None):
             ))
         )
 
-        # 5. Write to Firestore
+        # 6. Write to Firestore
         (predictions
             | "WriteToFirestore" >> beam.ParDo(WriteToFirestore(
                 project_id=known_args.project_id,
