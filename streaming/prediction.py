@@ -140,6 +140,9 @@ class VertexAIPrediction(beam.DoFn):
         # df['day_sin'] = np.sin(2 * np.pi * current_minute / minutes_in_day)
         # df['day_cos'] = np.cos(2 * np.pi * current_minute / minutes_in_day)
         
+        # Day of Week (0=Weekday, 1=Weekend)
+        df['dow'] = (df['ds'].dt.dayofweek >= 5).astype(int)
+        
         # C. Weather Features (Exogenous)
         weather_cols = ['temp', 'precip', 'snow', 'snowdepth', 'visibility', 'windspeed']
         

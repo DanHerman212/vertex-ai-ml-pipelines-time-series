@@ -60,7 +60,7 @@ def scale_data(raw_data, num_train_samples):
     
     return raw_data_scaled, train_mean, train_std
 
-def create_datasets(raw_data, mbt, num_train_samples, num_val_samples, sequence_length=150, batch_size=256):
+def create_datasets(raw_data, mbt, num_train_samples, num_val_samples, sequence_length=160, batch_size=256):
     # Train Dataset
     train_dataset = keras.utils.timeseries_dataset_from_array(
         data=raw_data[:-sequence_length],
@@ -195,7 +195,7 @@ if __name__ == "__main__":
         test_ds.save(args.test_dataset_path)
     
     # 5. Build Model
-    input_shape = (150, raw_data_scaled.shape[1])
+    input_shape = (160, raw_data_scaled.shape[1])
     model = build_optimized_gru_model(input_shape)
     model.summary()
     

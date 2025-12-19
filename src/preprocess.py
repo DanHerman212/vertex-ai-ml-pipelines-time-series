@@ -144,6 +144,10 @@ def preprocess_data(input_path, output_path):
     # df['day_sin'] = np.sin(2 * np.pi * current_minute / minutes_in_day)
     # df['day_cos'] = np.cos(2 * np.pi * current_minute / minutes_in_day)
 
+    # 3. Day of Week (0=Weekday, 1=Weekend)
+    # dayofweek: 0=Monday, 6=Sunday. So >=5 is weekend.
+    df['dow'] = (df['ds'].dt.dayofweek >= 5).astype(int)
+
     # Fill NaNs
     df = df.bfill()
 

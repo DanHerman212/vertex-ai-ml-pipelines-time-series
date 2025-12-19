@@ -72,7 +72,8 @@ def train_and_save(model_dir, input_path, test_output_path=None):
     # Note: futr_exog_list requires these columns to be known in the future. 
     # Since they are calendar based, they are fine.
     # Removed cyclic features as per user request
-    futr_exog_list = ['temp', 'precip', 'snow', 'snowdepth', 'visibility', 'windspeed']
+    # Added 'dow' (0=Weekday, 1=Weekend)
+    futr_exog_list = ['temp', 'precip', 'snow', 'snowdepth', 'visibility', 'windspeed', 'dow']
     # Added 'duration' to hist_exog_list as it is a feature, not target
     hist_exog_list = ['rolling_mean_10', 'rolling_std_10', 'rolling_mean_50', 'rolling_std_50', 'rolling_max_10', 'duration']
     
