@@ -15,7 +15,6 @@ venv/
 # Jupyter Notebooks and Data
 .ipynb_checkpoints
 training_and_preprocessing_workflows/
-weather_data.csv
 
 # Logs and Test Data
 lightning_logs/
