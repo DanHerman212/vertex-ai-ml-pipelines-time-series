@@ -46,12 +46,8 @@ def process_feed(content, publisher, topic_path):
         
         # Convert to JSON (Dict)
         # preserving_proto_field_name=True keeps 'route_id' instead of 'routeId'
-        # Check your downstream parser expectations! 
-        # streaming/transform.py uses camelCase (e.g. routeId) in some places? 
-        # Let's check the sample data or transform.py.
-        # transform.py uses: entity['vehicle']['trip']['routeId']
-        # So we likely want camelCase (default for MessageToDict is camelCase)
-        feed_dict = MessageToDict(feed)
+        # streaming/transform.py expects snake_case (e.g. route_id)
+        feed_dict = MessageToDict(feed, preserving_proto_field_name=True)
         
         # Serialize to JSON string
         message_json = json.dumps(feed_dict)

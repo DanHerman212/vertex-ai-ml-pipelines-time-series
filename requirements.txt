@@ -12,3 +12,4 @@ matplotlib
 
 apache-beam[gcp]
 requests
+google-cloud-pubsub

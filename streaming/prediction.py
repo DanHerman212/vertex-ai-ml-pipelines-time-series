@@ -179,6 +179,19 @@ class VertexAIPrediction(beam.DoFn):
         # Convert DataFrame to list of dicts
         instances = df.to_dict(orient='records')
         
+        if self.dry_run:
+            logging.info(f"DRY RUN: Generated {len(instances)} instances for {key}")
+            if instances:
+                logging.info(f"Sample Feature Vector: {instances[-1]}")
+            # Yield a dummy prediction to keep the pipeline flowing if needed
+            yield {
+                'key': key,
+                'input_last_timestamp': element['last_timestamp'],
+                'forecast': [0.0] * 10, # Dummy forecast
+                'dry_run_features': instances
+            }
+            return
+
         try:
             # 4. Call Endpoint
             prediction = self.endpoint.predict(instances=instances)
