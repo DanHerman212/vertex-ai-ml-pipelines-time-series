@@ -20,7 +20,9 @@ weather_data.csv
 # Logs and Test Data
 lightning_logs/
 local_test_data/
+.vertex_ai
 .vertex_ai/
+.vertex_ai/**
 
 # Documentation
 docs/
