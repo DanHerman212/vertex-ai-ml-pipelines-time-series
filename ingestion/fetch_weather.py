@@ -5,7 +5,7 @@ from datetime import datetime
 import logging
 
 class WeatherFetcher:
-    def __init__(self, api_key, location="New York, NY"):
+    def __init__(self, api_key, location="10022"):
         self.api_key = api_key
         self.location = location
         self.base_url = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline"
@@ -68,6 +68,7 @@ class WeatherFetcher:
         return parsed_data
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     # Test execution
     # key = os.environ.get("VISUAL_CROSSING_KEY")
     key = "LCV5P97B2K8LWEBUV93DD9BW9"
