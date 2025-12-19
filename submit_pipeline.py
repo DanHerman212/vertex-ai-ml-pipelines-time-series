@@ -5,18 +5,26 @@ import sys
 def submit_pipeline(project_id, region, bucket_name, pipeline_root, pipeline_json, bq_query):
     print(f"Initializing Vertex AI SDK for project {project_id} in {region}...")
     
-    # Debug Authentication
+    # Fallback: Use gcloud credentials explicitly if default auth fails
+    # This bypasses the ComputeEngineCredentials issue (TypeError: string indices must be integers)
     try:
-        from google import auth
-        credentials, cred_project = auth.default()
-        print(f"Debug - Loaded Credentials: {credentials}")
-        print(f"Debug - Credential Project: {cred_project}")
-        if hasattr(credentials, 'service_account_email'):
-             print(f"Debug - Service Account: {credentials.service_account_email}")
+        import subprocess
+        from google.oauth2 import credentials as google_creds
+        
+        print("Attempting to fetch credentials via gcloud...")
+        token = subprocess.check_output(["gcloud", "auth", "print-access-token"]).decode("utf-8").strip()
+        creds = google_creds.Credentials(token)
+        print("Successfully created credentials from gcloud token.")
+        
+        aiplatform.init(
+            project=project_id, 
+            location=region, 
+            staging_bucket=bucket_name,
+            credentials=creds
+        )
     except Exception as e:
-        print(f"Debug - Auth Check Failed: {e}")
-
-    aiplatform.init(project=project_id, location=region, staging_bucket=bucket_name)
+        print(f"Warning: Failed to use gcloud credentials ({e}). Falling back to default auth...")
+        aiplatform.init(project=project_id, location=region, staging_bucket=bucket_name)
 
     print(f"Submitting pipeline job from {pipeline_json}...")
     job = aiplatform.PipelineJob(
