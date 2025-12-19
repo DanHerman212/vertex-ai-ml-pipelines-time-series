@@ -54,11 +54,11 @@ def train_and_save(model_dir, input_path, test_output_path=None):
     train_val_df = pd.concat([train_df, val_df])
     
     # Create Test DataFrame for export
-    # IMPORTANT: We include the lookback window (input_size=150) so the model has context
+    # IMPORTANT: We include the lookback window (input_size=160) so the model has context
     # for the first prediction in the test set.
     # We also add a buffer (e.g. 20 steps) to allow for validation splits during evaluation
     # (since evaluate_nhits.py uses val_size=10, we need at least input_size + val_size history)
-    input_size = 150
+    input_size = 160
     buffer_size = 20
     start_idx = max(0, train_size + val_size - input_size - buffer_size)
     test_df_export = Y_df.iloc[start_idx:]
@@ -86,7 +86,7 @@ def train_and_save(model_dir, input_path, test_output_path=None):
     models = [
         NHITS(
             h=1,                      # Horizon: Predict next step
-            input_size=150,           # Lookback window (Aligned with GRU)
+            input_size=160,           # Lookback window (Aligned with Notebook)
             loss=MQLoss(quantiles=[0.1, 0.5, 0.9]), 
             hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,

@@ -26,9 +26,9 @@ hist_exog_list:
 - rolling_mean_50
 - rolling_std_50
 - rolling_max_10
-inference_input_size: 150
+inference_input_size: 160
 inference_windows_batch_size: -1
-input_size: 150
+input_size: 160
 interpolation_mode: linear
 learning_rate: 0.001
 logger: !!python/object:pytorch_lightning.loggers.csv_logs.CSVLogger
@@ -40,8 +40,8 @@ logger: !!python/object:pytorch_lightning.loggers.csv_logs.CSVLogger
   - {}
   _name: training_logs
   _prefix: ''
-  _root_dir: /var/folders/f1/dmgdbt5j5nb5ht5_vfxmr8gm0000gn/T/tmpwu9lilrb
-  _save_dir: /var/folders/f1/dmgdbt5j5nb5ht5_vfxmr8gm0000gn/T/tmpwu9lilrb
+  _root_dir: /var/folders/f1/dmgdbt5j5nb5ht5_vfxmr8gm0000gn/T/tmp4k06xvwj
+  _save_dir: /var/folders/f1/dmgdbt5j5nb5ht5_vfxmr8gm0000gn/T/tmp4k06xvwj
   _version: null
 loss: !!python/object:neuralforecast.losses.pytorch.MQLoss
   _backward_hooks: !!python/object/apply:collections.OrderedDict
@@ -77,8 +77,8 @@ loss: !!python/object:neuralforecast.losses.pytorch.MQLoss
               gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
               AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
               aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
-              Z2UKcQFYDwAAADE0MDQzNzY3MDg2ODQ2NHECWAMAAABjcHVxA0sDTnRxBFEugAJdcQBYDwAAADE0
-              MDQzNzY3MDg2ODQ2NHEBYS4DAAAAAAAAAM3MzD0AAAA/ZmZmPw==
+              Z2UKcQFYDwAAADE0MDUwNjAzOTk3NzI5NnECWAMAAABjcHVxA0sDTnRxBFEugAJdcQBYDwAAADE0
+              MDUwNjAzOTk3NzI5NnEBYS4DAAAAAAAAAM3MzD0AAAA/ZmZmPw==
           - 0
           - !!python/tuple
             - 3
@@ -104,7 +104,7 @@ loss: !!python/object:neuralforecast.losses.pytorch.MQLoss
   training: true
 lr_scheduler: null
 lr_scheduler_kwargs: null
-max_steps: 5
+max_steps: 1000
 mlp_units:
 - &id001
   - 512

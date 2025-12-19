@@ -148,6 +148,26 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
         print(f"Test RMSE: {rmse_val}")
         print(f"Test Scaled CRPS: {crps_val}")
         
+        # --- SUBSET EVALUATION (First 1000 samples) ---
+        # To compare with notebook results which evaluated on a subset
+        print("\n--- Subset Evaluation (First 1000 samples) ---")
+        subset_eval_df = eval_df.iloc[:1000].copy()
+        subset_evaluation_df = evaluate(
+            subset_eval_df,
+            metrics=metrics,
+            models=['NHITS'],
+            target_col='y',
+            id_col='unique_id',
+            time_col='ds',
+            level=[80]
+        )
+        subset_summary = subset_evaluation_df.drop(columns=['unique_id']).groupby('metric').mean().reset_index()
+        subset_mae = subset_summary.loc[subset_summary['metric'] == 'mae', 'NHITS'].values[0]
+        subset_rmse = subset_summary.loc[subset_summary['metric'] == 'rmse', 'NHITS'].values[0]
+        print(f"Subset MAE: {subset_mae}")
+        print(f"Subset RMSE: {subset_rmse}")
+        print("----------------------------------------------\n")
+        
     except Exception as e:
         print(f"Error using utilsforecast: {e}. Falling back to manual calculation.", flush=True)
         # Fallback
@@ -225,13 +245,27 @@ def plot_loss(model_dir, output_path):
     plt.figure(figsize=(10, 6))
     
     # Check for column names (PyTorch Lightning logger)
-    if 'train_loss_epoch' in metrics_df.columns:
-        plt.plot(metrics_df['train_loss_epoch'].dropna(), label='Train Loss')
-    elif 'train_loss' in metrics_df.columns:
-        plt.plot(metrics_df['train_loss'].dropna(), label='Train Loss')
-        
-    if 'valid_loss' in metrics_df.columns:
-        plt.plot(metrics_df['valid_loss'].dropna(), label='Validation Loss')
+    # Use 'step' as x-axis if available, otherwise use index (which might be mixed steps/epochs)
+    
+    # Filter for epoch-level metrics if possible to avoid the high-frequency noise of step-level loss
+    if 'epoch' in metrics_df.columns:
+        epoch_df = metrics_df.groupby('epoch').mean().reset_index()
+        if 'train_loss_epoch' in epoch_df.columns:
+             plt.plot(epoch_df['epoch'], epoch_df['train_loss_epoch'], label='Train Loss')
+        elif 'train_loss' in epoch_df.columns:
+             plt.plot(epoch_df['epoch'], epoch_df['train_loss'], label='Train Loss')
+             
+        if 'valid_loss' in epoch_df.columns:
+             plt.plot(epoch_df['epoch'], epoch_df['valid_loss'], label='Validation Loss')
+    else:
+        # Fallback to plotting everything (which looks noisy)
+        if 'train_loss_epoch' in metrics_df.columns:
+            plt.plot(metrics_df['train_loss_epoch'].dropna(), label='Train Loss')
+        elif 'train_loss' in metrics_df.columns:
+            plt.plot(metrics_df['train_loss'].dropna(), label='Train Loss')
+            
+        if 'valid_loss' in metrics_df.columns:
+            plt.plot(metrics_df['valid_loss'].dropna(), label='Validation Loss')
         
     plt.title('N-HiTS Training Loss')
     plt.xlabel('Epoch')
@@ -252,14 +286,35 @@ def plot_predictions(forecasts_df, output_path):
     
     # Check for median or default
     y_pred_col = 'NHITS-median' if 'NHITS-median' in plot_df.columns else 'NHITS'
+    
+    # If we renamed columns in eval_df, they might not be in forecasts_df passed here
+    # Let's ensure we are plotting the right thing.
+    if y_pred_col not in plot_df.columns:
+         # Fallback to finding any column starting with NHITS that isn't lo/hi
+         candidates = [c for c in plot_df.columns if c.startswith('NHITS') and '-lo-' not in c and '-hi-' not in c]
+         if candidates:
+             y_pred_col = candidates[0]
+    
     plt.plot(plot_df['ds'], plot_df[y_pred_col], label='Predicted Median MBT', color='blue', linewidth=2)
     
     # Plot Confidence Intervals if available
-    if 'NHITS-lo-80.0' in plot_df.columns and 'NHITS-hi-80.0' in plot_df.columns:
+    # Note: We renamed columns for utilsforecast earlier, but forecasts_df might still have original names
+    # or we might need to check for the renamed versions.
+    
+    lo_col = None
+    hi_col = None
+    
+    if 'NHITS-lo-80.0' in plot_df.columns: lo_col = 'NHITS-lo-80.0'
+    elif 'NHITS-lo-80' in plot_df.columns: lo_col = 'NHITS-lo-80'
+    
+    if 'NHITS-hi-80.0' in plot_df.columns: hi_col = 'NHITS-hi-80.0'
+    elif 'NHITS-hi-80' in plot_df.columns: hi_col = 'NHITS-hi-80'
+
+    if lo_col and hi_col:
         plt.fill_between(
             plot_df['ds'], 
-            plot_df['NHITS-lo-80.0'], 
-            plot_df['NHITS-hi-80.0'], 
+            plot_df[lo_col], 
+            plot_df[hi_col], 
             color='blue', 
             alpha=0.2, 
             label='80% Confidence Interval'
