@@ -13,9 +13,12 @@ from google_cloud_pipeline_components.v1.model import ModelUploadOp
 import os
 
 # Get image URI from environment variable (injected by deploy script)
-TENSORFLOW_IMAGE_URI = os.environ.get("TENSORFLOW_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/tensorflow-training:v1")
-PYTORCH_IMAGE_URI = os.environ.get("PYTORCH_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/pytorch-training:v1")
-PYTORCH_SERVING_IMAGE_URI = os.environ.get("PYTORCH_SERVING_IMAGE_URI", "us-east1-docker.pkg.dev/time-series-478616/ml-pipelines/pytorch-serving:v1")
+TENSORFLOW_IMAGE_URI = os.environ.get("TENSORFLOW_IMAGE_URI")
+PYTORCH_IMAGE_URI = os.environ.get("PYTORCH_IMAGE_URI")
+PYTORCH_SERVING_IMAGE_URI = os.environ.get("PYTORCH_SERVING_IMAGE_URI")
+
+if not TENSORFLOW_IMAGE_URI or not PYTORCH_IMAGE_URI:
+    raise ValueError("Image URIs must be set via environment variables (TENSORFLOW_IMAGE_URI, PYTORCH_IMAGE_URI)")
 
 # 1. Component: Extract Data from BigQuery
 @dsl.container_component

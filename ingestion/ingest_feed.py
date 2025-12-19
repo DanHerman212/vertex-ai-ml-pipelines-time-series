@@ -14,7 +14,10 @@ logging.basicConfig(
 )
 
 # Configuration (Env Variables)
-PROJECT_ID = os.getenv('PROJECT_ID', 'time-series-478616')
+PROJECT_ID = os.getenv('PROJECT_ID')
+if not PROJECT_ID:
+    raise ValueError("PROJECT_ID environment variable is not set")
+
 TOPIC_ID = os.getenv('TOPIC_ID', 'vehicle-position-updates')
 MTA_API_KEY = os.getenv('MTA_API_KEY')
 # Default to ACE train feed, but can be overridden

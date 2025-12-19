@@ -1,14 +1,22 @@
 #!/bin/bash
 set -e
 
-# Configuration
-PROJECT_ID="time-series-478616"
-ZONE="us-east1-b"
-INSTANCE_NAME="streaming-test-instance"
-WEATHER_API_KEY="LCV5P97B2K8LWEBUV93DD9BW9"
-ENDPOINT_ID="1234567890" # Dummy Endpoint ID for dry run
-TOPIC_ID="vehicle-position-updates"
-SUBSCRIPTION_ID="streaming-test-sub"
+# Load environment variables
+if [ -f .env ]; then
+    export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
+else
+    echo "Error: .env file not found. Please copy .env.example to .env and fill in the values."
+    exit 1
+fi
+
+# Required Variables
+REQUIRED_VARS=("PROJECT_ID" "ZONE" "INSTANCE_NAME" "WEATHER_API_KEY" "ENDPOINT_ID" "TOPIC_ID" "SUBSCRIPTION_ID")
+for VAR in "${REQUIRED_VARS[@]}"; do
+    if [ -z "${!VAR}" ]; then
+        echo "Error: $VAR is not set in .env"
+        exit 1
+    fi
+done
 
 # 1. Create GCE Instance
 echo "Creating GCE instance..."

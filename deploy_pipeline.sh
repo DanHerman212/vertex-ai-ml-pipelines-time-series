@@ -28,7 +28,23 @@ set -e
 # ==================================================================================
 # Configuration - Override these variables or set them in your environment
 # ==================================================================================
-PROJECT_ID=${PROJECT_ID:-"time-series-478616"}
+
+# Load environment variables from .env if present
+if [ -f .env ]; then
+    export $(cat .env | grep -v '#' | awk '/=/ {print $1}')
+fi
+
+# Required Variables
+if [ -z "$PROJECT_ID" ]; then
+    echo "Error: PROJECT_ID is not set. Please set it in .env or export it."
+    exit 1
+fi
+
+if [ -z "$BUCKET_NAME" ]; then
+    echo "Error: BUCKET_NAME is not set. Please set it in .env or export it."
+    exit 1
+fi
+
 REGION=${REGION:-"us-east1"}
 REPO_NAME=${REPO_NAME:-"ml-pipelines"}
 TENSORFLOW_IMAGE_NAME=${TENSORFLOW_IMAGE_NAME:-"tensorflow-training"}
@@ -36,7 +52,6 @@ PYTORCH_IMAGE_NAME=${PYTORCH_IMAGE_NAME:-"pytorch-training"}
 PYTORCH_SERVING_IMAGE_NAME=${PYTORCH_SERVING_IMAGE_NAME:-"pytorch-serving"}
 # Generate a unique tag based on timestamp if not provided
 TAG=${TAG:-"v$(date +%Y%m%d-%H%M%S)"}
-BUCKET_NAME=${BUCKET_NAME:-"time-series-478616-ml-pipeline"}
 BQ_QUERY=${BQ_QUERY:-'select
   arrival_date,
   duration,
