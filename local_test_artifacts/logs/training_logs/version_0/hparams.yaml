@@ -38,8 +38,8 @@ logger: !!python/object:pytorch_lightning.loggers.csv_logs.CSVLogger
   - {}
   _name: training_logs
   _prefix: ''
-  _root_dir: /tmp/tmponl2qd_f
-  _save_dir: /tmp/tmponl2qd_f
+  _root_dir: /tmp/tmp5kq955ix
+  _save_dir: /tmp/tmp5kq955ix
   _version: null
 loss: !!python/object:neuralforecast.losses.pytorch.MQLoss
   _backward_hooks: !!python/object/apply:collections.OrderedDict
@@ -72,8 +72,8 @@ loss: !!python/object:neuralforecast.losses.pytorch.MQLoss
           gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
           AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
           aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
-          Z2UKcQFYDwAAADE4NzY1MDY3MzAzMjIyNHECWAMAAABjcHVxA0sDTnRxBFEugAJdcQBYDwAAADE4
-          NzY1MDY3MzAzMjIyNHEBYS4DAAAAAAAAAM3MzD0AAAA/ZmZmPw==
+          Z2UKcQFYDwAAADE4NzY1MTAzMTY5MDc4NHECWAMAAABjcHVxA0sDTnRxBFEugAJdcQBYDwAAADE4
+          NzY1MTAzMTY5MDc4NHEBYS4DAAAAAAAAAM3MzD0AAAA/ZmZmPw==
       - 0
       - !!python/tuple
         - 3

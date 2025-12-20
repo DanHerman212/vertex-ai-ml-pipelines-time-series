@@ -50,8 +50,7 @@ docker run --rm \
     --model_dir "$ARTIFACTS_DIR_CONTAINER/nhits_model" \
     --metrics_output_path "$ARTIFACTS_DIR_CONTAINER/metrics.json" \
     --html_output_path "$ARTIFACTS_DIR_CONTAINER/report.html" \
-    --logs_dir "$ARTIFACTS_DIR_CONTAINER/logs" \
-    --limit_steps 5
+    --logs_dir "$ARTIFACTS_DIR_CONTAINER/logs"
 
 echo "========================================================"
 echo "Container test completed successfully!"
