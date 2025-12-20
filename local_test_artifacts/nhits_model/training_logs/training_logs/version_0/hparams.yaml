@@ -38,16 +38,15 @@ logger: !!python/object:pytorch_lightning.loggers.csv_logs.CSVLogger
   - {}
   _name: training_logs
   _prefix: ''
-  _root_dir: /var/folders/f1/dmgdbt5j5nb5ht5_vfxmr8gm0000gn/T/tmpqthqn22b
-  _save_dir: /var/folders/f1/dmgdbt5j5nb5ht5_vfxmr8gm0000gn/T/tmpqthqn22b
+  _root_dir: /tmp/tmponl2qd_f
+  _save_dir: /tmp/tmponl2qd_f
   _version: null
 loss: !!python/object:neuralforecast.losses.pytorch.MQLoss
   _backward_hooks: !!python/object/apply:collections.OrderedDict
   - []
   _backward_pre_hooks: !!python/object/apply:collections.OrderedDict
   - []
-  _buffers: !!python/object/apply:collections.OrderedDict
-  - []
+  _buffers: {}
   _forward_hooks: !!python/object/apply:collections.OrderedDict
   - []
   _forward_hooks_always_called: !!python/object/apply:collections.OrderedDict
@@ -63,31 +62,29 @@ loss: !!python/object:neuralforecast.losses.pytorch.MQLoss
   - []
   _load_state_dict_pre_hooks: !!python/object/apply:collections.OrderedDict
   - []
-  _modules: !!python/object/apply:collections.OrderedDict
-  - []
+  _modules: {}
   _non_persistent_buffers_set: !!set {}
-  _parameters: !!python/object/apply:collections.OrderedDict
-  - - - quantiles
-      - !!python/object/apply:torch._utils._rebuild_parameter
-        - !!python/object/apply:torch._utils._rebuild_tensor_v2
-          - !!python/object/apply:torch.storage._load_from_bytes
-            - !!binary |
-              gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
-              AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
-              aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
-              Z2UKcQFYDwAAADE0MDYyNDQxMTc3OTc2MHECWAMAAABjcHVxA0sDTnRxBFEugAJdcQBYDwAAADE0
-              MDYyNDQxMTc3OTc2MHEBYS4DAAAAAAAAAM3MzD0AAAA/ZmZmPw==
-          - 0
-          - !!python/tuple
-            - 3
-          - !!python/tuple
-            - 1
-          - false
-          - !!python/object/apply:collections.OrderedDict
-            - []
-        - false
-        - !!python/object/apply:collections.OrderedDict
-          - []
+  _parameters:
+    quantiles: !!python/object/apply:torch._utils._rebuild_parameter
+    - !!python/object/apply:torch._utils._rebuild_tensor_v2
+      - !!python/object/apply:torch.storage._load_from_bytes
+        - !!binary |
+          gAKKCmz8nEb5IGqoUBkugAJN6QMugAJ9cQAoWBAAAABwcm90b2NvbF92ZXJzaW9ucQFN6QNYDQAA
+          AGxpdHRsZV9lbmRpYW5xAohYCgAAAHR5cGVfc2l6ZXNxA31xBChYBQAAAHNob3J0cQVLAlgDAAAA
+          aW50cQZLBFgEAAAAbG9uZ3EHSwR1dS6AAihYBwAAAHN0b3JhZ2VxAGN0b3JjaApGbG9hdFN0b3Jh
+          Z2UKcQFYDwAAADE4NzY1MDY3MzAzMjIyNHECWAMAAABjcHVxA0sDTnRxBFEugAJdcQBYDwAAADE4
+          NzY1MDY3MzAzMjIyNHEBYS4DAAAAAAAAAM3MzD0AAAA/ZmZmPw==
+      - 0
+      - !!python/tuple
+        - 3
+      - !!python/tuple
+        - 1
+      - false
+      - !!python/object/apply:collections.OrderedDict
+        - []
+    - false
+    - !!python/object/apply:collections.OrderedDict
+      - []
   _state_dict_hooks: !!python/object/apply:collections.OrderedDict
   - []
   _state_dict_pre_hooks: !!python/object/apply:collections.OrderedDict
@@ -136,6 +133,7 @@ stack_types:
 start_padding_enabled: false
 stat_exog_list: null
 step_size: 1
+training_data_availability_threshold: 0.0
 val_check_steps: 100
 valid_batch_size: null
 valid_loss: null

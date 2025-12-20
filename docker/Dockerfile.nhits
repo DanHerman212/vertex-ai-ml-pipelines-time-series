@@ -2,6 +2,9 @@ FROM us-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-4.py310:latest
 
 WORKDIR /app
 
+# Ensure Python output is sent directly to terminal (helps with debugging crashes)
+ENV PYTHONUNBUFFERED=1
+
 # Install uv for faster dependency resolution
 RUN pip install uv
 

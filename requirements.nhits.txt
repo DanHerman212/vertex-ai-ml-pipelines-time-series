@@ -1,4 +1,4 @@
-neuralforecast==1.6.4
+neuralforecast==3.1.2
 utilsforecast
 google-cloud-storage
 google-cloud-bigquery
