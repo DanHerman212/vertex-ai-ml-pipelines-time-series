@@ -98,7 +98,19 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
         # We extract them from the future_df which contains the test set data
         futr_df = future_df.drop(columns=['y']) if 'y' in future_df.columns else future_df
         
-        forecasts = nf.predict(df=history_df, h=n_test_steps, futr_df=futr_df)
+        # NOTE: We do NOT pass 'h' to predict() because NeuralForecast infers it from futr_df
+        # Passing 'h' explicitly when futr_df is present can cause issues in some versions
+        # or if passed incorrectly to internal methods.
+        # However, the error "TimeSeriesDataModule.__init__() got an unexpected keyword argument 'h'"
+        # suggests that 'h' is being passed down to the DataModule where it shouldn't be.
+        # This is likely a bug in the specific version of NeuralForecast being used or an API mismatch.
+        #
+        # Workaround: The safest way to predict with future exogenous variables is to use the 
+        # predict method but ensure we are strictly following the API.
+        # If 'h' is causing the issue, we can try omitting it if futr_df is provided, 
+        # as the horizon is implied by the length of futr_df.
+        
+        forecasts = nf.predict(df=history_df, futr_df=futr_df)
         
         # Merge actuals (y) from future_df into forecasts for metric calculation
         # forecasts: [unique_id, ds, NHITS, ...]
