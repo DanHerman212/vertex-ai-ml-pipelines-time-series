@@ -116,9 +116,16 @@ def plot_predictions(forecasts_df):
          lo_col = 'NHITS-lo-90.0'
          hi_col = 'NHITS-hi-90.0'
          label = '90% Confidence Interval'
+    elif 'NHITS-lo-80.0' in plot_df.columns and 'NHITS-hi-80.0' in plot_df.columns:
+         lo_col = 'NHITS-lo-80.0'
+         hi_col = 'NHITS-hi-80.0'
+         label = '80% Confidence Interval'
         
     if lo_col and hi_col:
-        ax.fill_between(plot_df['ds'], plot_df[lo_col], plot_df[hi_col], color='blue', alpha=0.2, label=label)
+        ax.fill_between(plot_df['ds'], plot_df[lo_col], plot_df[hi_col], color='blue', alpha=0.4, label=label)
+    else:
+        # Fallback if no intervals found (optional, or just do nothing)
+        pass
         
     ax.set_title('Subway Headway Prediction: Actual vs Predicted')
     ax.set_xlabel('Time')
@@ -324,21 +331,12 @@ def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path
             
             fcst_df = nf.predict(df=history_buffer, futr_df=futr_df)
             
-            # Extract prediction (NHITS-median usually, or just NHITS)
-            # The column name depends on the model alias. 
-            # Default alias for NHITS is 'NHITS'. 
-            # If loss was MQLoss, we might have quantiles.
+            # Capture ALL prediction columns (quantiles, median, etc.)
+            pred_row = fcst_df.iloc[0].to_dict()
+            pred_row['y'] = row['y']
+            pred_row['ds'] = row['ds']
             
-            # Let's find the prediction column
-            pred_cols = [c for c in fcst_df.columns if c not in ['ds', 'unique_id']]
-            # Prefer median or main point forecast
-            pred_col = next((c for c in pred_cols if 'median' in c), pred_cols[0])
-            
-            pred_value = fcst_df.iloc[0][pred_col]
-            
-            predictions.append(pred_value)
-            actuals.append(row['y'])
-            timestamps.append(row['ds'])
+            predictions.append(pred_row)
             
             # Update buffer: drop oldest, add new actual
             # We append the current test row to history so it's available for the NEXT prediction
@@ -347,16 +345,12 @@ def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path
             if len(predictions) % 50 == 0:
                 print(f"Processed {len(predictions)}/{test_size} steps...", flush=True)
 
-        # Construct Forecast DataFrame matching the structure expected by plotting functions
-        forecasts = pd.DataFrame({
-            'ds': timestamps,
-            'y': actuals,
-            'NHITS-median': predictions
-        })
+        # Construct Forecast DataFrame
+        forecasts = pd.DataFrame(predictions)
         
-        # Add dummy quantile columns if plotting expects them, to avoid errors
-        # (Or update plotting logic. For now, we just plot median)
-        forecasts['unique_id'] = 'E'
+        # Ensure unique_id exists
+        if 'unique_id' not in forecasts.columns:
+            forecasts['unique_id'] = 'E'
         
         print(f"Forecasts generated. Shape: {forecasts.shape}", flush=True)
 
@@ -425,8 +419,9 @@ def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path
     
     # 2. Loss Plot (if logs available)
     loss_plot_b64 = None
-    if logs_dir:
-        loss_plot_b64 = plot_loss(logs_dir)
+    # User requested to remove training/validation loss plot for now
+    # if logs_dir:
+    #     loss_plot_b64 = plot_loss(logs_dir)
         
     # 3. Generate HTML
     metrics_dict = {"MAE": mae_val, "RMSE": rmse_val}
