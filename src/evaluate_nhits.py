@@ -93,7 +93,12 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
         
         print(f"History size: {len(history_df)}, Future size: {len(future_df)}", flush=True)
         
-        forecasts = nf.predict(df=history_df, h=n_test_steps)
+        # Prepare future exogenous variables (futr_df)
+        # The model expects these columns for the forecast horizon
+        # We extract them from the future_df which contains the test set data
+        futr_df = future_df.drop(columns=['y']) if 'y' in future_df.columns else future_df
+        
+        forecasts = nf.predict(df=history_df, h=n_test_steps, futr_df=futr_df)
         
         # Merge actuals (y) from future_df into forecasts for metric calculation
         # forecasts: [unique_id, ds, NHITS, ...]
