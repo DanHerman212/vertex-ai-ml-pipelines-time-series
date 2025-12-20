@@ -1,16 +1,27 @@
-import argparse
-import pandas as pd
-import numpy as np
-import os
-import json
-import base64
-from io import BytesIO
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from scipy.stats import gaussian_kde
-from neuralforecast import NeuralForecast
-from neuralforecast.losses.numpy import mae, rmse
+import sys
+print("Starting evaluate_nhits.py script...", flush=True)
+
+try:
+    import argparse
+    import pandas as pd
+    import numpy as np
+    import os
+    import json
+    import base64
+    from io import BytesIO
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from scipy.stats import gaussian_kde
+    from neuralforecast import NeuralForecast
+    from neuralforecast.losses.numpy import mae, rmse
+    print("All imports successful.", flush=True)
+except ImportError as e:
+    print(f"CRITICAL: Import failed: {e}", flush=True)
+    sys.exit(1)
+except Exception as e:
+    print(f"CRITICAL: Unexpected error during imports: {e}", flush=True)
+    sys.exit(1)
 
 def get_plot_base64(fig):
     buf = BytesIO()
