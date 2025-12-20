@@ -36,23 +36,14 @@ def load_data(input_path):
     if df['ds'].dt.tz is not None:
         df['ds'] = df['ds'].dt.tz_localize(None)
         
-    # Round to hourly frequency to ensure alignment with NeuralForecast's freq='H'
-    # This fixes potential mismatches during cross_validation merge
-    df['ds'] = df['ds'].dt.floor('H')
+    # Do NOT round to hourly frequency. Use raw timestamps.
+    # df['ds'] = df['ds'].dt.floor('H')
     
     # Add unique_id
     df['unique_id'] = 'E'
     
-    # Aggregate duplicates if any exist after rounding (taking the mean)
-    # This ensures strictly one record per hour per unique_id
-    if df.duplicated(subset=['unique_id', 'ds']).any():
-        print("Aggregating duplicate timestamps after hourly rounding...")
-        # Identify numeric columns for aggregation
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-        # Ensure 'ds' and 'unique_id' are not in numeric_cols to avoid errors, though groupby handles them
-        numeric_cols = [c for c in numeric_cols if c not in ['ds', 'unique_id']]
-        
-        df = df.groupby(['unique_id', 'ds'])[numeric_cols].mean().reset_index()
+    # Ensure data is sorted by time
+    df = df.sort_values(['unique_id', 'ds']).reset_index(drop=True)
     
     print(f"Data shape after processing: {df.shape}")
     return df
@@ -131,7 +122,8 @@ def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000)
     ]
     
     # Initialize NeuralForecast
-    nf = NeuralForecast(models=models, freq='H')
+    # Use freq='S' (Second) to accommodate high-frequency/irregular data without aggregation
+    nf = NeuralForecast(models=models, freq='S')
     
     # 3. Train Model
     print("Training NHITS model...")

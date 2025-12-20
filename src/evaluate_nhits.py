@@ -26,19 +26,22 @@ def evaluate_nhits(model_dir, test_csv_path, metrics_output_path, plot_output_pa
         if test_df['ds'].dt.tz is not None:
             test_df['ds'] = test_df['ds'].dt.tz_localize(None)
             
-        # Round to hourly frequency to ensure alignment with NeuralForecast's freq='H'
-        test_df['ds'] = test_df['ds'].dt.floor('H')
+        # Do NOT round to hourly frequency. Use raw timestamps.
+        # test_df['ds'] = test_df['ds'].dt.floor('H')
     
     # Ensure unique_id exists
     if 'unique_id' not in test_df.columns:
         test_df['unique_id'] = 'E'
         
+    # Ensure data is sorted by time
+    test_df = test_df.sort_values(['unique_id', 'ds']).reset_index(drop=True)
+        
     # Aggregate duplicates if any exist after rounding (taking the mean)
-    if test_df.duplicated(subset=['unique_id', 'ds']).any():
-        print("Aggregating duplicate timestamps after hourly rounding...")
-        numeric_cols = test_df.select_dtypes(include=[np.number]).columns.tolist()
-        numeric_cols = [c for c in numeric_cols if c not in ['ds', 'unique_id']]
-        test_df = test_df.groupby(['unique_id', 'ds'])[numeric_cols].mean().reset_index()
+    # if test_df.duplicated(subset=['unique_id', 'ds']).any():
+    #    print("Aggregating duplicate timestamps after hourly rounding...")
+    #    numeric_cols = test_df.select_dtypes(include=[np.number]).columns.tolist()
+    #    numeric_cols = [c for c in numeric_cols if c not in ['ds', 'unique_id']]
+    #    test_df = test_df.groupby(['unique_id', 'ds'])[numeric_cols].mean().reset_index()
 
     print(f"Loading model from {model_dir}...", flush=True)
     try:
