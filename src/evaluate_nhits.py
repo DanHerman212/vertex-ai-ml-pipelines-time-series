@@ -199,7 +199,7 @@ def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path
         raise e
     try:
         # Use user requested setup
-        print(f"Running Cross Validation on df with horion = 1")
+        print(f"Running Cross Validation on df with horion = 1", flush=True)
         
         horizon = 1
 
@@ -207,7 +207,7 @@ def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path
             df=df,
             step_size=horizon,
             val_size=horizon,
-            test_size=(len(df)*0.2),
+            test_size=int(len(df)*0.2),
             n_windows=None
         )
         print(f"Forecasts generated. Shape: {forecasts.shape}", flush=True)
