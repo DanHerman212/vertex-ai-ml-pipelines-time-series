@@ -1,4 +1,6 @@
 import sys
+# Force unbuffered output at the system level
+sys.stdout.reconfigure(line_buffering=True)
 print("Starting evaluate_nhits.py script...", flush=True)
 
 try:
@@ -232,8 +234,11 @@ def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path
             if hasattr(model, 'trainer_kwargs') and isinstance(model.trainer_kwargs, dict):
                 model.trainer_kwargs['logger'] = False
                 model.trainer_kwargs['enable_checkpointing'] = False
-                # FORCE CPU to avoid CUDA/Driver mismatches in Vertex AI
-                model.trainer_kwargs['accelerator'] = 'cpu'
+                # Restore GPU usage if available
+                import torch
+                use_gpu = torch.cuda.is_available()
+                model.trainer_kwargs['accelerator'] = 'gpu' if use_gpu else 'cpu'
+                print(f"Model accelerator set to: {model.trainer_kwargs['accelerator']}", flush=True)
                 model.trainer_kwargs['devices'] = 1
 
             # Clear existing logger instance
@@ -346,7 +351,7 @@ def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path
             # We append the current test row to history so it's available for the NEXT prediction
             history_buffer = pd.concat([history_buffer.iloc[1:], df.iloc[[idx]]])
             
-            if len(predictions) % 50 == 0:
+            if len(predictions) == 1 or len(predictions) % 10 == 0:
                 print(f"Processed {len(predictions)}/{test_size} steps...", flush=True)
 
         # Construct Forecast DataFrame
