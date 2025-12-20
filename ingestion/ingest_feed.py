@@ -59,6 +59,8 @@ def process_feed(content, publisher, topic_path, dry_run=False):
         
         if dry_run:
             logging.info(f"[DRY RUN] Would publish message with {len(feed.entity)} entities. Size: {len(message_bytes)} bytes.")
+            if len(feed.entity) > 0:
+                logging.info(f"[DRY RUN] Sample Entity 1: {json.dumps(feed_dict['entity'][0], indent=2)}")
             return
 
         # Publish to Pub/Sub
