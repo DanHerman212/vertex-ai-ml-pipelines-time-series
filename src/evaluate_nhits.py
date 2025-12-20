@@ -200,10 +200,8 @@ def generate_html_report(output_path, metrics_dict, pred_plot_b64, loss_plot_b64
         f.write(html_content)
     print(f"HTML report saved to {output_path}", flush=True)
 
-def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path, logs_dir=None, limit_steps=None):
+def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path, logs_dir=None):
     print(f"Starting evaluation script...", flush=True)
-    if limit_steps:
-        print(f"DEBUG: Evaluation limited to {limit_steps} steps.", flush=True)
     print(f"Loading full data from {df_csv_path}...", flush=True)
     df = pd.read_csv(df_csv_path)
     
@@ -297,10 +295,6 @@ def evaluate_nhits(model_dir, df_csv_path, metrics_output_path, html_output_path
         # But for ~400-2000 points it should be acceptable.
         
         for idx, row in test_df.iterrows():
-            if limit_steps and len(predictions) >= limit_steps:
-                print(f"DEBUG: Reached limit of {limit_steps} steps. Stopping evaluation loop.", flush=True)
-                break
-            
             # Predict
             # nf.predict uses the end of the dataframe to predict forward
             # Since we have future exogenous variables, we must provide them in futr_df
@@ -445,7 +439,6 @@ if __name__ == "__main__":
     parser.add_argument('--metrics_output_path', type=str, required=True)
     parser.add_argument('--html_output_path', type=str, required=True)
     parser.add_argument('--logs_dir', type=str, required=False)
-    parser.add_argument('--limit_steps', type=int, required=False, default=None)
     
     args = parser.parse_args()
     
@@ -454,6 +447,5 @@ if __name__ == "__main__":
         args.df_csv_path, 
         args.metrics_output_path, 
         args.html_output_path,
-        args.logs_dir,
-        args.limit_steps
+        args.logs_dir
     )
