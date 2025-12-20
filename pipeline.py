@@ -94,7 +94,8 @@ def evaluate_gru_component(
 def train_nhits_component(
     input_csv: dsl.Input[dsl.Dataset],
     model_dir: dsl.Output[artifact_types.UnmanagedContainerModel],
-    test_csv: dsl.Output[dsl.Dataset],
+    df_output_csv: dsl.Output[dsl.Dataset],
+    logs_dir: dsl.Output[dsl.Artifact],
 ):
     return dsl.ContainerSpec(
         image=PYTORCH_IMAGE_URI,
@@ -102,27 +103,28 @@ def train_nhits_component(
         args=[
             "--input_csv", input_csv.path,
             "--model_dir", model_dir.path,
-            "--test_output_csv", test_csv.path
+            "--df_output_csv", df_output_csv.path,
+            "--logs_dir", logs_dir.path
         ]
     )
 
 @dsl.container_component
 def evaluate_nhits_component(
-    test_csv: dsl.Input[dsl.Dataset],
+    df_csv: dsl.Input[dsl.Dataset],
     model_dir: dsl.Input[artifact_types.UnmanagedContainerModel],
+    logs_dir: dsl.Input[dsl.Artifact],
     metrics: dsl.Output[dsl.Metrics],
-    loss_plot: dsl.Output[dsl.HTML],
-    prediction_plot: dsl.Output[dsl.HTML],
+    html_summary: dsl.Output[dsl.HTML],
 ):
     return dsl.ContainerSpec(
         image=PYTORCH_IMAGE_URI,
         command=["python", "src/evaluate_nhits.py"],
         args=[
-            "--test_dataset_path", test_csv.path,
+            "--df_csv_path", df_csv.path,
             "--model_dir", model_dir.path,
+            "--logs_dir", logs_dir.path,
             "--metrics_output_path", metrics.path,
-            "--plot_output_path", loss_plot.path,
-            "--prediction_plot_path", prediction_plot.path
+            "--html_output_path", html_summary.path
         ]
     )
 
@@ -228,8 +230,9 @@ def forecasting_pipeline(
     
     # Step 6: Evaluate N-HiTS
     evaluate_nhits_task = evaluate_nhits_component(
-        test_csv=train_nhits_task.outputs["test_csv"],
-        model_dir=train_nhits_task.outputs["model_dir"]
+        df_csv=train_nhits_task.outputs["df_output_csv"],
+        model_dir=train_nhits_task.outputs["model_dir"],
+        logs_dir=train_nhits_task.outputs["logs_dir"]
     )
     evaluate_nhits_task.set_cpu_limit('8')
     evaluate_nhits_task.set_memory_limit('32G')

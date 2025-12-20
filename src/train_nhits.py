@@ -48,41 +48,27 @@ def load_data(input_path):
     print(f"Data shape after processing: {df.shape}")
     return df
 
-def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000):
+def train_and_save(model_dir, input_path, df_output_path=None, logs_dir=None):
     # 1. Load Data
-    Y_df = load_data(input_path)
+    df = load_data(input_path)
     
-    # Split logic (60/20/20)
-    n = len(Y_df)
-    train_size = int(n * 0.6)
-    val_size = int(n * 0.2)
-    test_size = n - train_size - val_size
+    # # Split logic (60/20/20)
+    # n = len(df)
+    # train_size = int(n * 0.6)
+    # val_size = int(n * 0.2)
+    # test_size = n - train_size - val_size
 
-    train_df = Y_df.iloc[:train_size]
-    val_df = Y_df.iloc[train_size:train_size+val_size]
-    test_df = Y_df.iloc[train_size+val_size:]
+    # train_df = df.iloc[:train_size]
+    # val_df = df.iloc[train_size:train_size+val_size]
+    # test_df = df.iloc[train_size+val_size:]
 
-    print(f"Train size: {len(train_df)}")
-    print(f"Validation size: {len(val_df)}")
-    print(f"Test size: {len(test_df)}")
+    # print(f"Train size: {len(train_df)}")
+    # print(f"Validation size: {len(val_df)}")
+    # print(f"Test size: {len(test_df)}")
     
-    # Create Train+Val DataFrame for fitting
-    train_val_df = pd.concat([train_df, val_df])
     
-    # Create Test DataFrame for export
-    # IMPORTANT: We include the lookback window (input_size=160) so the model has context
-    # for the first prediction in the test set.
-    # We also add a buffer (e.g. 50 steps) to allow for validation splits during evaluation
-    # (since evaluate_nhits.py uses val_size=0, we need at least input_size + horizon history)
     input_size = 160
-    buffer_size = 50
-    start_idx = max(0, train_size + val_size - input_size - buffer_size)
-    test_df_export = Y_df.iloc[start_idx:]
-    
-    if test_output_path:
-        print(f"Saving test dataframe to {test_output_path}...")
-        os.makedirs(os.path.dirname(test_output_path), exist_ok=True)
-        test_df_export.to_csv(test_output_path, index=False)
+    horizon = 1
     
     # Define Exogenous Variables
     # Note: futr_exog_list requires these columns to be known in the future. 
@@ -103,21 +89,19 @@ def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000)
     # 2. Define Model
     models = [
         NHITS(
-            h=1,                      # Horizon: Predict next step
-            input_size=160,           # Lookback window (Aligned with Notebook)
+            h=horizon,                      # Horizon: Predict next step
+            input_size=input_size,           # Lookback window (Aligned with Notebook)
             loss=MQLoss(quantiles=[0.1, 0.5, 0.9]), 
             hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,
-            max_steps=max_steps,           
+            max_steps=1000,           
             early_stop_patience_steps=10,
-            val_check_steps=100,      # Check validation every 100 steps
-            batch_size=256,           # Batch size (Aligned with GRU)
-            scaler_type='standard',   # Changed to standard to match GRU model
+            scaler_type='standard', 
             learning_rate=1e-3,
             n_pool_kernel_size=[2, 2, 2], 
             n_freq_downsample=[168, 24, 1],
-            accelerator="gpu" if torch.cuda.is_available() else "cpu"
-            # logger=logger      # Removed to prevent path issues during loading
+            accelerator="gpu" if torch.cuda.is_available() else "cpu",
+            logger=logger
         )
     ]
     
@@ -127,7 +111,7 @@ def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000)
     
     # 3. Train Model
     print("Training NHITS model...")
-    nf.fit(df=train_val_df, val_size=val_size)
+    nf.fit(df=df, val_size=horizon)
     
     # 4. Save Model
     if not os.path.exists(model_dir):
@@ -136,18 +120,47 @@ def train_and_save(model_dir, input_path, test_output_path=None, max_steps=1000)
     print(f"Saving model to {model_dir}...")
     nf.save(path=model_dir, model_index=None, overwrite=True)
     
-    # Cleanup temp logs if they were created (but we removed logger injection)
+    # 5. Save Full Data
+    if df_output_path:
+        print(f"Saving full dataframe to {df_output_path}...")
+        os.makedirs(os.path.dirname(df_output_path), exist_ok=True)
+        df.to_csv(df_output_path, index=False)
+
+    # 6. Save Training Logs
+    # Copy from temp dir to model_dir/training_logs
+    final_log_dir = os.path.join(model_dir, "training_logs")
+    if os.path.exists(final_log_dir):
+        shutil.rmtree(final_log_dir)
+    shutil.copytree(temp_log_dir, final_log_dir)
+    print(f"Training logs saved to {final_log_dir}")
+
+    # Save logs to separate artifact if requested
+    if logs_dir:
+        print(f"Saving training logs to {logs_dir}...")
+        # KFP creates the directory for the artifact, but copytree expects destination to NOT exist or be empty?
+        # shutil.copytree requires dst to not exist.
+        # But KFP might create the folder.
+        # If logs_dir exists, we should copy the CONTENTS of temp_log_dir to logs_dir.
+        if os.path.exists(logs_dir):
+             # Copy contents
+             import distutils.dir_util
+             distutils.dir_util.copy_tree(temp_log_dir, logs_dir)
+        else:
+             shutil.copytree(temp_log_dir, logs_dir)
+        print(f"Training logs saved to {logs_dir}")
+    
+    # Cleanup temp logs
     if os.path.exists(temp_log_dir):
         shutil.rmtree(temp_log_dir)
-    print("Model saved successfully.")
+    print("Model and artifacts saved successfully.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_csv', type=str, required=True, help='Path to input CSV file')
     parser.add_argument('--model_dir', type=str, default='nhits_model', help='Local directory to save model')
-    parser.add_argument('--test_output_csv', type=str, required=False, help='Path to save test CSV')
-    parser.add_argument('--max_steps', type=int, default=1000, help='Max training steps')
+    parser.add_argument('--df_output_csv', type=str, required=False, help='Path to save full df to CSV')
+    parser.add_argument('--logs_dir', type=str, required=False, help='Path to save training logs')
     args = parser.parse_args()
 
-    train_and_save(args.model_dir, args.input_csv, args.test_output_csv, args.max_steps)
+    train_and_save(args.model_dir, args.input_csv, args.df_output_csv, args.logs_dir)
 
