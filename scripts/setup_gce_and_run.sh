@@ -75,7 +75,7 @@ gcloud compute ssh $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
     pip install -r requirements/requirements.txt
     
     # --- Setup Ingestion Service (Producer) ---
-    echo "Setting up Ingestion Service..."
+    echo 'Setting up Ingestion Service...'
     sudo mkdir -p /opt/mta-ingestion
     
     # Copy files to /opt/mta-ingestion
@@ -98,7 +98,7 @@ gcloud compute ssh $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
     sudo systemctl enable mta-ingestion
     sudo systemctl restart mta-ingestion
     
-    echo "Ingestion Service (Producer) started in background."
+    echo 'Ingestion Service (Producer) started in background.'
     
     # --- Run Streaming Pipeline (Consumer) ---
     echo 'Starting Streaming Pipeline (Consumer)...'
