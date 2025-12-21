@@ -98,24 +98,28 @@ def plot_loss(model_dir, output_path):
     
     plt.tight_layout()
     
-    # Save as HTML for Vertex AI visualization
-    # We can save as an image and embed it in HTML, or just save as image if the output type allows.
-    # But Vertex AI 'HTML' artifact expects an HTML file.
-    # Let's save the plot to a temporary image file, then embed it in HTML.
-    
-    # Actually, let's just save as a static image first, but since the artifact type is HTML,
-    # we need to wrap it.
-    
-    import base64
-    from io import BytesIO
-    
     buf = BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
     img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close()
     
     html_content = f"""
-    <html>, dates=None):
+    <html>
+    <head><title>Training History</title></head>
+    <body>
+        <h1>Training History</h1>
+        <img src="data:image/png;base64,{img_base64}" alt="Loss Plot" style="max-width: 100%; border: 1px solid #ddd;">
+    </body>
+    </html>
+    """
+    
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, 'w') as f:
+        f.write(html_content)
+    print(f"Loss plot saved to {output_path}")
+
+def plot_evaluation_report(actuals, predictions, output_path, metrics_dict=None, dates=None):
     # Ensure 1D arrays
     actuals = actuals.flatten()
     predictions = predictions.flatten()
@@ -132,7 +136,15 @@ def plot_loss(model_dir, output_path):
     
     if dates is not None:
         # Ensure dates align with actuals/predictions
-        plot_dates = dates[:len(actuals)]
+        # If dates are longer than actuals (due to batching dropping last partial batch), trim dates
+        if len(dates) > len(actuals):
+            dates = dates[:len(actuals)]
+        elif len(dates) < len(actuals):
+            # This shouldn't happen if logic is correct, but handle it
+            actuals = actuals[:len(dates)]
+            predictions = predictions[:len(dates)]
+            
+        plot_dates = dates
         
         # Use tail
         plot_dates_subset = plot_dates[-limit:]
@@ -153,23 +165,6 @@ def plot_loss(model_dir, output_path):
         ax1.set_xlabel('Sample Index')
 
     ax1.set_title(f'Multi Stack - Regularized GRU with Keras Model Evaluation (Last {limit} samples)')
-    # Ensure 1D arrays
-    actuals = actuals.flatten()
-    predictions = predictions.flatten()
-
-    # Create figure with GridSpec layout
-    # Top: Time Series (Full Width)
-    # Bottom: Density (Left), Residuals (Right)
-    fig = plt.figure(figsize=(16, 12))
-    gs = fig.add_gridspec(2, 2)
-    
-    # --- Plot 1: Time Series (First 500 samples) ---
-    ax1 = fig.add_subplot(gs[0, :])
-    limit = 500
-    ax1.plot(actuals[:limit], label='Actual', color='black', linewidth=1.5, alpha=1.0)
-    ax1.plot(predictions[:limit], label='Predicted', color='blue', linewidth=1.5, alpha=0.7)
-    ax1.set_title(f'Time Series Prediction (First {limit} samples)')
-    ax1.set_xlabel('Sample Index')
     ax1.set_ylabel('Value')
     ax1.legend()
     ax1.grid(True, alpha=0.3)
@@ -234,13 +229,11 @@ def plot_loss(model_dir, output_path):
     
     plt.tight_layout()
     
-    import base64
-    from io import BytesIO
-    
     buf = BytesIO()
     plt.savefig(buf, format='png')
     buf.seek(0)
     img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close()
     
     metrics_html = ""
     if metrics_dict:
@@ -250,16 +243,16 @@ def plot_loss(model_dir, output_path):
         metrics_html = f"""
         <div style="margin-bottom: 20px;">
             <h3>Metrics</h3>
-            <tabulti Stack - Regularized GRU with Keras Model Evaluation</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            table {{ border: 1px solid #ddd; }}
-            th, td {{ text-align: left; padding: 8px; }}
-            tr:nth-child(even) {{ background-color: #f9f9f9; }}
-        </style>
-    </head>
-    <body>
-        <h1>Multi Stack - Regularized GRU with Keras Model Evaluation
+            <table border="1" style="border-collapse: collapse; width: 300px;">
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 8px; text-align: left;">Metric</th>
+                    <th style="padding: 8px; text-align: left;">Value</th>
+                </tr>
+                {rows}
+            </table>
+        </div>
+        """
+
     html_content = f"""
     <html>
     <head>
@@ -276,7 +269,19 @@ def plot_loss(model_dir, output_path):
         {metrics_html}
         <img src="data:image/png;base64,{img_base64}" alt="Evaluation Plots" style="max-width: 100%; border: 1px solid #ddd;">
     </body>
-    </html>input_csv', type=str, required=False)
+    </html>
+    """
+    
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, 'w') as f:
+        f.write(html_content)
+    print(f"Evaluation report saved to {output_path}")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--test_dataset_path', type=str, required=True)
+    parser.add_argument('--model_dir', type=str, required=True)
+    parser.add_argument('--input_csv', type=str, required=False)
     parser.add_argument('--metrics_output_path', type=str, required=True)
     parser.add_argument('--plot_output_path', type=str, required=False)
     parser.add_argument('--prediction_plot_path', type=str, required=False)
@@ -303,20 +308,7 @@ def plot_loss(model_dir, output_path):
                 print(f"Warning: Could not load dates from CSV: {e}")
         
         metrics_dict = {"MAE": mae}
-        plot_evaluation_report(actuals, predictions, args.prediction_plot_path, metrics_dict, dates
-    test_ds = tf.data.Dataset.load(args.test_dataset_path)
-    
-    # 2. Evaluate
-    mae, actuals, predictions = evaluate_gru(args.model_dir, test_ds)
-    
-    # 3. Plot Loss
-    if args.plot_output_path:
-        plot_loss(args.model_dir, args.plot_output_path)
-        
-    # 4. Plot Evaluation Report (Time Series + Residuals)
-    if args.prediction_plot_path:
-        metrics_dict = {"MAE": mae}
-        plot_evaluation_report(actuals, predictions, args.prediction_plot_path, metrics_dict)
+        plot_evaluation_report(actuals, predictions, args.prediction_plot_path, metrics_dict, dates)
     
     # 5. Save Metrics for Vertex AI
     metrics = {
