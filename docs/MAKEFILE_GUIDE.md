@@ -51,7 +51,15 @@ make stop
 ```
 *Under the hood: Runs `scripts/stop_vm_pipeline.sh`*
 
-### 6. Load Image Variables
+### 6. Teardown Infrastructure
+Permanently deletes the GCE instance, Pub/Sub topic, and Pub/Sub subscription. Use this when you are completely done with the project or want to reset the environment. **Warning: This action is destructive.**
+
+```bash
+make teardown
+```
+*Under the hood: Runs `scripts/teardown_gce.sh`*
+
+### 7. Load Image Variables
 Helper command that prints instructions on how to load Docker image environment variables into your current shell session.
 
 ```bash

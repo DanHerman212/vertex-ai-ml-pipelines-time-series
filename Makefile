@@ -36,6 +36,12 @@ stop:
 	@chmod +x scripts/stop_vm_pipeline.sh
 	@./scripts/stop_vm_pipeline.sh
 
+# Teardown GCE instance and Pub/Sub resources
+teardown:
+	@echo "🗑️  Tearing down GCE and Pub/Sub resources..."
+	@chmod +x scripts/teardown_gce.sh
+	@./scripts/teardown_gce.sh
+
 # Helper to source image variables (prints instructions as make runs in a subshell)
 image-vars:
 	@echo "ℹ️  To load image variables, run this in your shell:"
