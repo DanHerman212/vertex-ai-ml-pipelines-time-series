@@ -142,9 +142,8 @@ def train_and_save(model_dir, input_path, df_output_path=None, logs_dir=None):
         # But KFP might create the folder.
         # If logs_dir exists, we should copy the CONTENTS of temp_log_dir to logs_dir.
         if os.path.exists(logs_dir):
-             # Copy contents
-             import distutils.dir_util
-             distutils.dir_util.copy_tree(temp_log_dir, logs_dir)
+             # Copy contents using shutil with dirs_exist_ok=True (Python 3.8+)
+             shutil.copytree(temp_log_dir, logs_dir, dirs_exist_ok=True)
         else:
              shutil.copytree(temp_log_dir, logs_dir)
         print(f"Training logs saved to {logs_dir}")
@@ -155,12 +154,20 @@ def train_and_save(model_dir, input_path, df_output_path=None, logs_dir=None):
     print("Model and artifacts saved successfully.")
 
 if __name__ == "__main__":
+    print("Starting train_nhits.py...")
     parser = argparse.ArgumentParser()
     parser.add_argument('--input_csv', type=str, required=True, help='Path to input CSV file')
     parser.add_argument('--model_dir', type=str, default='nhits_model', help='Local directory to save model')
     parser.add_argument('--df_output_csv', type=str, required=False, help='Path to save full df to CSV')
     parser.add_argument('--logs_dir', type=str, required=False, help='Path to save training logs')
-    args = parser.parse_args()
-
-    train_and_save(args.model_dir, args.input_csv, args.df_output_csv, args.logs_dir)
+    
+    try:
+        args = parser.parse_args()
+        print(f"Arguments: {args}")
+        train_and_save(args.model_dir, args.input_csv, args.df_output_csv, args.logs_dir)
+    except Exception as e:
+        print(f"Error in train_nhits.py: {e}")
+        import traceback
+        traceback.print_exc()
+        exit(1)
 
