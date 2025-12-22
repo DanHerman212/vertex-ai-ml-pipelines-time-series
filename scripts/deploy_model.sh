@@ -63,7 +63,8 @@ gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
 # Build and Push
 # IMPORTANT: Must build for linux/amd64 for Vertex AI, even if on Mac M1/M2
-docker build --platform linux/amd64 -t "$REPO_URI:$IMAGE_TAG" -f docker/Dockerfile.serving .
+# Using --no-cache to ensure we pick up the new Dockerfile changes
+docker build --no-cache --platform linux/amd64 -t "$REPO_URI:$IMAGE_TAG" -f docker/Dockerfile.serving .
 docker push "$REPO_URI:$IMAGE_TAG"
 
 # 4. Upload Model to Vertex AI

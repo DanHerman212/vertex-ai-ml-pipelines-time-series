@@ -13,7 +13,9 @@ RUN pip install uv
 # Install serving dependencies
 # Install CPU-only PyTorch to avoid CUDA errors on CPU nodes
 RUN uv pip install --system --no-cache torch --index-url https://download.pytorch.org/whl/cpu
-RUN uv pip install --system --no-cache neuralforecast==1.6.4 pandas numpy fastapi uvicorn
+# Install neuralforecast and other dependencies
+# Note: We explicitly install pytorch-lightning to ensure compatibility
+RUN uv pip install --system --no-cache neuralforecast==1.6.4 pandas numpy fastapi uvicorn pytorch-lightning
 
 # Copy serving code
 COPY src/serve.py src/serve.py
