@@ -137,6 +137,41 @@ class VertexAIPrediction(beam.DoFn):
             })
             
         df = pd.DataFrame(data)
+        
+        # --- PADDING LOGIC (Ensure 160 rows) ---
+        required_history = 160
+        current_history = len(df)
+        prediction_status = "LIVE"
+        
+        if current_history < required_history:
+            prediction_status = f"WARMUP ({current_history}/{required_history})"
+            missing_count = required_history - current_history
+            
+            # Calculate defaults for padding
+            avg_mbt = df['y'].mean() if not df.empty else 5.0
+            avg_duration = df['duration'].mean() if not df.empty else 25.0
+            first_ds = df['ds'].iloc[0] if not df.empty else pd.Timestamp.now()
+            
+            # Generate padding rows (going backwards in time)
+            padding_data = []
+            for i in range(1, missing_count + 1):
+                # Go back i intervals (approximate)
+                prev_ts = first_ds - pd.Timedelta(minutes=avg_mbt * i)
+                padding_data.append({
+                    'ds': prev_ts,
+                    'y': avg_mbt,
+                    'duration': avg_duration,
+                    'unique_id': key.split('_')[0]
+                })
+            
+            # Prepend padding (reverse list so oldest is first)
+            padding_df = pd.DataFrame(padding_data[::-1])
+            df = pd.concat([padding_df, df], ignore_index=True)
+            
+            logging.info(f"⚠️  Padded input with {missing_count} synthetic rows. Status: {prediction_status}")
+        else:
+            logging.info(f"✅ Input history complete ({current_history} rows). Status: {prediction_status}")
+
         logging.info(f"Calculated MBT for {len(df)} intervals. Last MBT: {df.iloc[-1]['y']:.2f} min")
         
         # 2. Feature Engineering
@@ -151,34 +186,36 @@ class VertexAIPrediction(beam.DoFn):
         
         # B. Cyclic Features (Calendar) - Commented out as per user request
         # minutes_in_week = 7 * 24 * 60
-        # minutes_in_day = 24 * 60
-        
-        # Ensure ds is datetime
-        df['ds'] = pd.to_datetime(df['ds'])
-        
-        # df['week_sin'] = np.sin(2 * np.pi * df['ds'].dt.dayofweek * 24 * 60 / minutes_in_week)
-        # df['week_cos'] = np.cos(2 * np.pi * df['ds'].dt.dayofweek * 24 * 60 / minutes_in_week)
-        
-        # current_minute = df['ds'].dt.hour * 60 + df['ds'].dt.minute
-        # df['day_sin'] = np.sin(2 * np.pi * current_minute / minutes_in_day)
-        # df['day_cos'] = np.cos(2 * np.pi * current_minute / minutes_in_day)
-        
-        # Day of Week (0=Weekday, 1=Weekend)
-        df['dow'] = (df['ds'].dt.dayofweek >= 5).astype(int)
-        
-        # C. Weather Features (Exogenous)
-        weather_cols = ['temp', 'precip', 'snow', 'snowdepth', 'visibility', 'windspeed']
-        
-        # Apply weather lookup row by row (can be optimized, but fine for streaming batch sizes)
-        weather_data = df['ds'].apply(self.get_weather_features).apply(pd.Series)
-        df = pd.concat([df, weather_data], axis=1)
-        
-        # 3. Prepare Request
-        # Convert datetime back to string for JSON serialization
-        df['ds'] = df['ds'].dt.strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Convert DataFrame to list of dicts
-        instances = df.to_dict(orient='records')
+        # minutes_in_day = 24 * 60 | Status: {prediction_status}:\n"
+                    f"   📅 Timestamp: {latest.get('ds')}\n"
+                    f"   ⏱️  Duration:  {latest.get('duration', 0):.2f} min\n"
+                    f"   📉 Target (y): {latest.get('y', 0):.2f} min\n"
+                    f"   📊 Rolling(10): Mean={latest.get('rolling_mean_10', 0):.2f}, Std={latest.get('rolling_std_10', 0):.2f}\n"
+                    f"   🌤️  Weather: Temp={latest.get('temp')}°F, Wind={latest.get('windspeed')} mph"
+                )
+                logging.info(msg)
+            
+            # Yield a dummy prediction to keep the pipeline flowing if needed
+            yield {
+                'key': key,
+                'input_last_timestamp': element['last_timestamp'],
+                'prediction_status': prediction_status,
+                'forecast': [0.0], # Dummy forecast (Horizon=1)
+                'dry_run_features': instances
+            }
+            return
+
+        try:
+            # 4. Call Endpoint
+            prediction = self.endpoint.predict(instances=instances)
+            forecast = prediction.predictions
+            
+            logging.info(f"🔮 PREDICTION RECEIVED for {key}: {forecast}")
+
+            yield {
+                'key': key,
+                'input_last_timestamp': element['last_timestamp'],
+                'prediction_status': prediction_status
         
         if self.dry_run:
             logging.info(f"DRY RUN: Generated {len(instances)} instances for {key}")
@@ -199,7 +236,7 @@ class VertexAIPrediction(beam.DoFn):
             yield {
                 'key': key,
                 'input_last_timestamp': element['last_timestamp'],
-                'forecast': [0.0] * 10, # Dummy forecast
+                'forecast': [0.0], # Dummy forecast (Horizon=1)
                 'dry_run_features': instances
             }
             return
