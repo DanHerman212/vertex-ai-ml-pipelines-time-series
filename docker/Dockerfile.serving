@@ -1,13 +1,18 @@
-FROM us-docker.pkg.dev/vertex-ai/training/pytorch-gpu.2-4.py310:latest
+FROM python:3.10-slim
 
 WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install uv for faster dependency resolution
 RUN pip install uv
 
 # Install serving dependencies
-# neuralforecast for the model, fastapi/uvicorn for the server
-# PyTorch is already included in the base image, so this will be much faster
+# Install CPU-only PyTorch to avoid CUDA errors on CPU nodes
+RUN uv pip install --system --no-cache torch --index-url https://download.pytorch.org/whl/cpu
 RUN uv pip install --system --no-cache neuralforecast==1.6.4 pandas numpy fastapi uvicorn
 
 # Copy serving code
