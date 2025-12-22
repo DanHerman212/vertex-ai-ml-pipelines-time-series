@@ -15,7 +15,7 @@ set -e
 PROJECT_ID=$(gcloud config get-value project)
 REGION="us-east1"  # Default region
 MODEL_NAME="nhits-forecast-model"
-ENDPOINT_NAME="nhits-prediction-endpoint"
+ENDPOINT_NAME="nhits-prediction-endpoint-v2"
 ARTIFACT_BUCKET="${PROJECT_ID}-vertex-artifacts"
 IMAGE_REPO="nhits-serving"
 IMAGE_TAG="latest"
