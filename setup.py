@@ -17,7 +17,8 @@ setuptools.setup(
         'matplotlib',
         'apache-beam[gcp]',
         'requests',
-        'google-cloud-pubsub'
+        'google-cloud-pubsub',
+        'google-cloud-firestore'
     ],
     packages=setuptools.find_packages(),
 )
