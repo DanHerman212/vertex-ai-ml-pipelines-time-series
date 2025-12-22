@@ -55,9 +55,9 @@ sleep 30
 
 # 2. Copy files
 echo "Copying files to instance..."
-tar -czf workspace.tar.gz --exclude='venv' --exclude='.git' --exclude='__pycache__' --exclude='workspace.tar.gz' .
-gcloud compute scp workspace.tar.gz $INSTANCE_NAME:~/ --project=$PROJECT_ID --zone=$ZONE
-rm workspace.tar.gz
+tar -czf /tmp/workspace.tar.gz --exclude='venv' --exclude='.git' --exclude='__pycache__' .
+gcloud compute scp /tmp/workspace.tar.gz $INSTANCE_NAME:~/workspace.tar.gz --project=$PROJECT_ID --zone=$ZONE
+rm /tmp/workspace.tar.gz
 
 # 3. Setup and Run
 echo "Setting up and running on instance..."
