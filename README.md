@@ -2,7 +2,7 @@
 ## Challenger/Champion ML Workflow with NHITS and GRU Models
 This repo includes end to end machine learning pipelines for time series forecasting on Vertex AI.<br>  
 
-The forecasting task centers around the public transit domain for the NYC subway system.  The target forecast is minutes until the next train arrives, at a particular station, to help passengers manage uncertainty in planning their commute.<br>
+The forecasting task centers around the public transit domain for the NYC subway system.  The target forecast is minutes until the next train arrives, at a particular station, to help passengers manage uncertainty in planning their daily usage of the system.<br>
 
 The data representation from the subway system is generated from censors on subway vehicles, at high frequency with irregular intervals.  Given the complexity of the data, we train two different models with distinct architectures to gain perspective on what's possible with deep learning. <br>
 
