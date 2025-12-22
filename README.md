@@ -4,7 +4,7 @@ This repo includes end to end machine learning pipelines for time series forecas
 
 The forecasting task centers around the public transit domain for the NYC subway system.  The target forecast is minutes until the next train arrives, at a particular station, to help passengers manage uncertainty in planning their daily usage of the system.<br>
 
-The data representation from the subway system is generated from censors on subway vehicles, at high frequency with irregular intervals.  Given the complexity of the data, we train two different models with distinct architectures to gain perspective on what's possible with deep learning. <br>
+The data representation from the subway system is generated from censors on subway vehicles, at high frequency with irregular intervals.  Given the complexity of the data, we train two different models with distinct architectures to gain perspective on good architecture priors. <br>
 
 The first model is a traditional RNN using a stacked and regularlized GRU architecture with TensorFlow and Keras.  The second is a N-HiTS model, which is a state of the art multi-stack MLP, that uses hierarchical interpolation and multi-rate sampling to handle different timescales, deployed with NeuralForecast. <br><br> The pipeline is designed to run on Vertex AI using Kubeflow Pipelines (KFP) and leverages GPU acceleration for model training.
 
