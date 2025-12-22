@@ -67,7 +67,9 @@ docker push "$REPO_URI:$IMAGE_TAG"
 
 # 4. Upload Model to Vertex AI
 echo "[4/5] Uploading Model to Vertex AI Registry..."
-MODEL_ID=$(gcloud ai models upload \
+
+# Run command and capture output to a temporary file to debug errors
+gcloud ai models upload \
     --region=$REGION \
     --display-name=$MODEL_NAME \
     --container-image-uri="$REPO_URI:$IMAGE_TAG" \
@@ -75,7 +77,19 @@ MODEL_ID=$(gcloud ai models upload \
     --container-predict-route="/predict" \
     --container-health-route="/health" \
     --container-ports=8080 \
-    --format="value(name)")
+    --format="value(name)" > model_id.txt 2> model_error.txt
+
+EXIT_CODE=$?
+
+if [ $EXIT_CODE -ne 0 ]; then
+    echo "Error: Model upload failed. Details:"
+    cat model_error.txt
+    rm model_id.txt model_error.txt
+    exit 1
+fi
+
+MODEL_ID=$(cat model_id.txt)
+rm model_id.txt model_error.txt
 
 echo "Model uploaded. ID: $MODEL_ID"
 
@@ -99,14 +113,12 @@ if [ -z "$EXISTING_ENDPOINT_ID" ]; then
         --region=$REGION \
         --display-name=$ENDPOINT_NAME \
         --format="value(name)")
-if [ -z "$ENDPOINT_ID" ]; then
-    echo "Error: Failed to capture ENDPOINT_ID."
-    exit 1
-fi
-
-echo "Deploying model to endpoint $ENDPOINT_ID..."
-echo "Debug: MODEL_ID=$MODEL_ID"
-
+    
+    if [ -z "$ENDPOINT_ID" ]; then
+        echo "Error: Failed to capture ENDPOINT_ID."
+        exit 1
+    fi
+else
     echo "Using existing endpoint: $EXISTING_ENDPOINT_ID"
     ENDPOINT_ID=$EXISTING_ENDPOINT_ID
 fi
