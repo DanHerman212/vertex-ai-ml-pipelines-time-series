@@ -48,6 +48,12 @@ teardown:
 	@chmod +x scripts/teardown_gce.sh
 	@./scripts/teardown_gce.sh
 
+# Deploy the streaming pipeline to Dataflow (Production)
+deploy-streaming:
+	@echo "🌊 Deploying Streaming Pipeline to Dataflow..."
+	@chmod +x scripts/deploy_streaming_production.sh
+	@./scripts/deploy_streaming_production.sh
+
 # Helper to source image variables (prints instructions as make runs in a subshell)
 image-vars:
 	@echo "ℹ️  To load image variables, run this in your shell:"

@@ -13,3 +13,4 @@ matplotlib
 apache-beam[gcp]
 requests
 google-cloud-pubsub
+importlib-metadata>=6.0.0

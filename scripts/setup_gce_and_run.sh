@@ -107,7 +107,7 @@ gcloud compute ssh $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
     # Go back to workspace
     cd ~/nhits_workflow
     
-    python3 streaming/pipeline.py \
+    python3 -m streaming.pipeline \
         --project_id=$PROJECT_ID \
         --region=us-east1 \
         --endpoint_id=$ENDPOINT_ID \
