@@ -112,10 +112,15 @@ if [ -n "$EXISTING_MODEL_RAW" ]; then
         BASE_MODEL_ID=$EXISTING_MODEL_ID
     fi
     
-    # Fetch the latest version ID (sort by createTime descending)
-    LATEST_VERSION_ID=$(gcloud ai models list-version $BASE_MODEL_ID --region=$REGION --format="value(versionId)" --sort-by="~createTime" | head -n 1)
+    # Fetch the latest version ID
+    # We use python to parse the JSON and find the max integer versionId, 
+    # because gcloud sorting by time can be unreliable if timestamps are identical.
+    LATEST_VERSION_ID=$(gcloud ai models list-version $BASE_MODEL_ID --region=$REGION --format="json" | python3 -c "import sys, json; print(max([int(v['versionId']) for v in json.load(sys.stdin)]))")
     
     if [ -z "$LATEST_VERSION_ID" ]; then
+        echo "Error: Could not determine new version ID."
+        exit 1
+    fi
         echo "Error: Could not determine new version ID."
         exit 1
     fi
