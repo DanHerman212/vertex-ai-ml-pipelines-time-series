@@ -2,6 +2,7 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 import logging
 import argparse
+import typing
 from streaming.transform import ParseVehicleUpdates, CalculateTripDuration, AccumulateArrivals
 from streaming.prediction import VertexAIPrediction
 from streaming.sink import WriteToFirestore
@@ -67,7 +68,7 @@ def run(argv=None):
         # 2. Parse and Filter
         # Yields (trip_id, update_dict)
         parsed_updates = (messages
-            | "ParseVehicleUpdates" >> beam.ParDo(ParseVehicleUpdates(target_route_id="E", origin_stop_id="G05S", target_stop_id="F11S"))
+            | "ParseVehicleUpdates" >> beam.ParDo(ParseVehicleUpdates(target_route_id="E", origin_stop_id="G05S", target_stop_id="F11S")).with_output_types(typing.Tuple[str, dict])
         )
 
         # 3. Calculate Duration

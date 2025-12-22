@@ -111,6 +111,7 @@ gcloud compute ssh $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
     export PYTHONLOGLEVEL=info
     
     python3 -m streaming.pipeline \
+        --runner=DirectRunner \
         --project_id=$PROJECT_ID \
         --region=us-east1 \
         --endpoint_id=$ENDPOINT_ID \

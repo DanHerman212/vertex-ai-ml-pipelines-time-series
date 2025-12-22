@@ -34,8 +34,11 @@ gcloud compute ssh $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
     echo 'Starting Streaming Pipeline (Dry Run)...'
     echo 'Press Ctrl+C to stop.'
     
+    export PYTHONLOGLEVEL=info
+
     # Run as a module to ensure imports work correctly
     python3 -m streaming.pipeline \
+        --runner=DirectRunner \
         --project_id=$PROJECT_ID \
         --region=us-east1 \
         --input_subscription=$SUBSCRIPTION_ID \
