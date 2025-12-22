@@ -111,7 +111,7 @@ if [ -n "$EXISTING_MODEL_RAW" ]; then
     fi
     
     # Fetch the latest version ID (sort by createTime descending)
-    LATEST_VERSION_ID=$(gcloud ai models list-versions $BASE_MODEL_ID --region=$REGION --format="value(versionId)" --sort-by="~createTime" | head -n 1)
+    LATEST_VERSION_ID=$(gcloud ai models list-version $BASE_MODEL_ID --region=$REGION --format="value(versionId)" --sort-by="~createTime" | head -n 1)
     
     if [ -z "$LATEST_VERSION_ID" ]; then
         echo "Error: Could not determine new version ID."
