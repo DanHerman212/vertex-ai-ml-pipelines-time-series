@@ -1,12 +1,12 @@
 # ML Pipelines for Time Series Forecasting on Vertex AI
 ## Challenger/Champion ML Workflow with NHITS and GRU Models
-This repo includes end to end machine learning pipelines for time series forecasting on Vertex AI.<br>  
+This repo includes end to end machine learning pipelines for time series forecasting on [Vertex AI](https://docs.cloud.google.com/vertex-ai/docs/pipelines/introduction).<br>  
 
-The forecasting task centers around the public transit domain for the NYC subway system.  The target forecast is minutes until the next train arrives, at a particular station, to help passengers manage uncertainty in planning their daily usage of the system.<br>
+The forecasting task centers around the public transit domain for the [NYC subway system](https://www.mta.info/).  The target forecast is minutes until the next train arrives, at a particular station, to help passengers manage uncertainty in planning their daily usage of the system.<br>
 
 The data representation from the subway system is generated from censors on subway vehicles, at high frequency with irregular intervals.  Given the complexity of the data, we train two different models with distinct architectures to gain perspective on good architecture priors. <br>
 
-The first model is a traditional RNN using a stacked and regularlized GRU architecture with TensorFlow and Keras.  The second is a N-HiTS model, which is a state of the art multi-stack MLP, that uses hierarchical interpolation and multi-rate sampling to handle different timescales, deployed with NeuralForecast. <br><br> The pipeline is designed to run on Vertex AI using Kubeflow Pipelines (KFP) and leverages GPU acceleration for model training.
+The first model is a traditional [RNN](https://www.tensorflow.org/guide/keras/working_with_rnns) using a stacked and regularlized GRU architecture with TensorFlow and Keras.  The second is a [N-HiTS](https://nixtlaverse.nixtla.io/neuralforecast/models.nhits.html) model, which is a state of the art multi-stack MLP, that uses hierarchical interpolation and multi-rate sampling to handle different timescales, deployed with [NeuralForecast](https://nixtlaverse.nixtla.io/neuralforecast/docs/getting-started/introduction.html). <br><br> The pipeline is designed to run on Vertex AI using [Kubeflow Pipelines](https://cloud.google.com/discover/what-is-kubeflow?hl=en) (KFP) and leverages GPU acceleration for model training.
 
 <div align="center">
   <img src="images/vertexaipipelines.png" alt="Image Description">
