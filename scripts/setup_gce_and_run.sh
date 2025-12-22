@@ -116,6 +116,5 @@ gcloud compute ssh $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
         --region=us-east1 \
         --endpoint_id=$ENDPOINT_ID \
         --input_subscription=projects/$PROJECT_ID/subscriptions/$SUBSCRIPTION_ID \
-        --weather_api_key=$WEATHER_API_KEY \
-        --dry_run
+        --weather_api_key=$WEATHER_API_KEY
 "

@@ -198,6 +198,8 @@ class VertexAIPrediction(beam.DoFn):
             prediction = self.endpoint.predict(instances=instances)
             forecast = prediction.predictions
             
+            logging.info(f"🔮 PREDICTION RECEIVED for {key}: {forecast}")
+
             yield {
                 'key': key,
                 'input_last_timestamp': element['last_timestamp'],
