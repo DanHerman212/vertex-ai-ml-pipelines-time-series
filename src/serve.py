@@ -3,6 +3,8 @@ import uvicorn
 from fastapi import FastAPI, Request
 import pandas as pd
 from neuralforecast import NeuralForecast
+# Explicitly import NHITS to ensure it's available for unpickling
+from neuralforecast.models import NHITS
 
 app = FastAPI()
 model = None

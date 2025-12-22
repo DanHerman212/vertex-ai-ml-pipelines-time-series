@@ -15,7 +15,8 @@ RUN pip install uv
 RUN uv pip install --system --no-cache torch --index-url https://download.pytorch.org/whl/cpu
 # Install neuralforecast and other dependencies
 # Note: We explicitly install pytorch-lightning to ensure compatibility
-RUN uv pip install --system --no-cache neuralforecast==1.6.4 pandas numpy fastapi uvicorn pytorch-lightning
+# MATCHING VERSION FROM TRAINING: 3.1.2
+RUN uv pip install --system --no-cache neuralforecast==3.1.2 pandas numpy fastapi uvicorn pytorch-lightning scipy matplotlib
 
 # Copy serving code
 COPY src/serve.py src/serve.py
