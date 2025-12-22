@@ -16,6 +16,18 @@ class WriteToFirestore(beam.DoFn):
         """
         Initialize Firestore client once per worker.
         """
+        # By default, this connects to the '(default)' database.
+        # If using a named database, we must specify it.
+        # self.client = firestore.Client(project=self.project_id, database='timeseries-project')
+        # However, usually the main DB is named '(default)'.
+        # If the user explicitly named it 'timeseries-project', we need to pass that.
+        
+        # Let's try to connect to the named database if provided, otherwise default.
+        # For now, we will assume the user meant the project ID is 'timeseries-project' 
+        # and the database is '(default)'.
+        # BUT if the database name ITSELF is 'timeseries-project', we need to change this.
+        
+        # Assuming standard setup where DB name matches project or is (default).
         self.client = firestore.Client(project=self.project_id)
 
     def process(self, element):

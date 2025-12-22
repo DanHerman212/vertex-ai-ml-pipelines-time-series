@@ -34,6 +34,26 @@ else
     echo "Subscription $SUBSCRIPTION_ID already exists."
 fi
 
+# 0.5. Check Firestore Prerequisites
+echo "Checking Firestore configuration..."
+if ! gcloud services list --enabled --project=$PROJECT_ID --filter="name:firestore.googleapis.com" | grep -q "firestore.googleapis.com"; then
+    echo "⚠️  Firestore API is NOT enabled."
+    echo "   Please enable it: gcloud services enable firestore.googleapis.com"
+    exit 1
+fi
+
+# Check if default database exists (requires App Engine or Native mode setup)
+# Note: User mentioned DB name might be 'timeseries-project'. 
+# We check for ANY database to be safe.
+if ! gcloud firestore databases list --project=$PROJECT_ID --format="value(name)" | grep -q "projects/$PROJECT_ID/databases/"; then
+    echo "⚠️  No Firestore Database found."
+    echo "   Please create it in the GCP Console -> Firestore -> Create Database."
+    echo "   Select 'Native Mode' and 'Production' rules."
+    exit 1
+else
+    echo "Firestore is ready."
+fi
+
 # 1. Create/Start GCE Instance
 echo "Configuring GCE instance..."
 if gcloud compute instances describe $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE > /dev/null 2>&1; then

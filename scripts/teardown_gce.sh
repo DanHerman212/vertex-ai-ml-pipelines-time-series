@@ -90,6 +90,12 @@ else
     echo "ENDPOINT_ID not set in .env, skipping Vertex AI cleanup."
 fi
 
+echo "--------------------------------------------------------"
+echo "NOTE: Firestore data (collection 'predictions') was NOT deleted."
+echo "Firestore charges for storage, not hourly usage."
+echo "To delete the data, visit the Firebase/GCP Console."
+echo "--------------------------------------------------------"
+
 echo "Teardown complete."
 
 echo "========================================================"
