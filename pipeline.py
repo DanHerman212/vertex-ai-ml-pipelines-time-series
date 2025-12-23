@@ -155,7 +155,9 @@ def attach_serving_spec(
     model_with_spec.uri = original_model.uri
     model_with_spec.metadata = {
         "containerSpec": {
-            "imageUri": serving_image_uri
+            "imageUri": serving_image_uri,
+            "healthRoute": "/health",
+            "predictRoute": "/predict"
         }
     }
 
