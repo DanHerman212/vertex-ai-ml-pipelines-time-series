@@ -50,6 +50,36 @@ def load_model():
     try:
         # NeuralForecast.load expects the directory containing the saved model
         model = NeuralForecast.load(path=actual_model_path)
+        
+        # PATCH: Fix broken logger paths from training environment
+        # The model artifacts might contain absolute paths to temporary training directories
+        # which don't exist in the serving environment. We redirect them to a new temp dir.
+        import tempfile
+        safe_log_dir = tempfile.mkdtemp()
+        logger.info(f"Patching model loggers to use {safe_log_dir}")
+        
+        for i, m in enumerate(model.models):
+            # Check for PyTorch Lightning logger in the model itself
+            if hasattr(m, 'logger') and m.logger is not None:
+                logger.info(f"Disabling logger for model {i}")
+                m.logger = None
+                    
+            # Also check trainer if it exists
+            try:
+                # Accessing .trainer raises RuntimeError if not attached
+                if m.trainer is not None:
+                     if m.trainer.logger is not None:
+                         logger.info(f"Disabling trainer logger for model {i}")
+                         m.trainer.logger = None
+            except RuntimeError:
+                pass
+            
+            # Check trainer_kwargs (common in NeuralForecast)
+            if hasattr(m, 'trainer_kwargs') and isinstance(m.trainer_kwargs, dict):
+                if 'logger' in m.trainer_kwargs:
+                    logger.info(f"Disabling logger in trainer_kwargs for model {i}")
+                    m.trainer_kwargs['logger'] = None
+                    
         logger.info("Model loaded successfully.")
     except Exception as e:
         logger.error(f"Error loading model from {actual_model_path}: {e}")
@@ -86,6 +116,9 @@ async def predict(request: Request):
         # Ensure 'ds' is datetime
         if 'ds' in df.columns:
             df['ds'] = pd.to_datetime(df['ds'])
+            # Strip timezone to avoid mismatches (NeuralForecast can be picky)
+            if df['ds'].dt.tz is not None:
+                df['ds'] = df['ds'].dt.tz_localize(None)
             
         # NeuralForecast predict requires a dataframe with history.
         # It will predict 'h' steps into the future for each unique_id found in df.
@@ -110,6 +143,20 @@ async def predict(request: Request):
             hist_df = df.iloc[:-horizon].reset_index(drop=True)
             futr_df = df.tail(horizon).reset_index(drop=True)
             
+            # Fix for irregular timestamps:
+            # The model expects specific future timestamps based on its frequency.
+            # We generate them and overwrite the 'ds' in futr_df to avoid "missing combinations" error.
+            try:
+                expected_futr_df = model.make_future_dataframe(df=hist_df)
+                if len(futr_df) == len(expected_futr_df):
+                    logger.info("Aligning future timestamps to model frequency.")
+                    # Ensure alignment by unique_id if possible, but for single series direct assignment works
+                    futr_df['ds'] = expected_futr_df['ds'].values
+                else:
+                    logger.warning(f"Mismatch in future rows. Provided: {len(futr_df)}, Expected: {len(expected_futr_df)}")
+            except Exception as align_error:
+                logger.warning(f"Failed to align future timestamps: {align_error}")
+
             logger.info(f"Predicting with Future Exog. History: {len(hist_df)}, Future: {len(futr_df)}")
             forecast = model.predict(df=hist_df, futr_df=futr_df)
         else:

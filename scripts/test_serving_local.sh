@@ -49,9 +49,15 @@ echo "========================================================"
 echo "TEST: Prediction"
 echo "========================================================"
 
-# Create a dummy payload with required features
-# We use python to generate the JSON because it's cleaner
-python3 -c '
+# Use request.json if it exists (real data), otherwise generate dummy data
+if [ -f "request.json" ]; then
+    echo "Using existing request.json..."
+    cp request.json payload.json
+else
+    echo "Generating dummy payload..."
+    # Create a dummy payload with required features
+    # We use python to generate the JSON because it's cleaner
+    python3 -c '
 import json
 import pandas as pd
 import numpy as np
@@ -86,6 +92,7 @@ for i, date in enumerate(dates):
 payload = {"instances": data}
 print(json.dumps(payload))
 ' > payload.json
+fi
 
 curl -X POST \
     -H "Content-Type: application/json" \
