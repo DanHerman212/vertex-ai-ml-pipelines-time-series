@@ -1,10 +1,18 @@
 import os
 import uvicorn
+import logging
 from fastapi import FastAPI, Request
 import pandas as pd
 from neuralforecast import NeuralForecast
 # Explicitly import NHITS to ensure it's available for unpickling
 from neuralforecast.models import NHITS
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 model = None
@@ -13,17 +21,41 @@ model = None
 def load_model():
     global model
     # Vertex AI sets AIP_STORAGE_URI to the path where model artifacts are downloaded
-    model_path = os.environ.get("AIP_STORAGE_URI", "nhits_model")
+    base_path = os.environ.get("AIP_STORAGE_URI", "nhits_model")
     
-    print(f"Loading model from {model_path}...")
+    logger.info(f"Base model path from env: {base_path}")
+    
+    # 1. Find the actual directory containing the model files
+    # We look for 'NHITS_0.ckpt' or 'dataset.pkl' which are characteristic of NeuralForecast models
+    actual_model_path = base_path
+    found = False
+    
+    if os.path.exists(base_path):
+        logger.info(f"Listing contents of {base_path}:")
+        for root, dirs, files in os.walk(base_path):
+            for file in files:
+                full_path = os.path.join(root, file)
+                logger.info(f"Found file: {full_path}")
+                
+                # Heuristic: If we find the checkpoint file, the parent dir is likely the model dir
+                if file == "NHITS_0.ckpt" or file == "dataset.pkl":
+                    if not found: # Use the first one found
+                        actual_model_path = root
+                        found = True
+                        logger.info(f"✅ Detected model directory at: {actual_model_path}")
+    else:
+        logger.error(f"Base path {base_path} does not exist!")
+
+    # 2. Load the model
+    logger.info(f"Attempting to load model from: {actual_model_path}")
     try:
         # NeuralForecast.load expects the directory containing the saved model
-        model = NeuralForecast.load(path=model_path)
-        print("Model loaded successfully.")
+        model = NeuralForecast.load(path=actual_model_path)
+        logger.info("Model loaded successfully.")
     except Exception as e:
-        print(f"Error loading model: {e}")
-        # In production, we might want to crash if model fails to load
-        # raise e
+        logger.error(f"Error loading model from {actual_model_path}: {e}")
+        # Crash the app if model fails to load so Vertex AI knows deployment failed
+        raise e
 
 @app.get("/health")
 def health_check():
@@ -34,6 +66,7 @@ def health_check():
 async def predict(request: Request):
     global model
     if not model:
+        logger.error("Predict called but model is not loaded.")
         return {"error": "Model not loaded"}
     
     try:
@@ -78,7 +111,7 @@ async def predict(request: Request):
             hist_df = df.iloc[:-horizon].reset_index(drop=True)
             futr_df = df.tail(horizon).reset_index(drop=True)
             
-            print(f"Predicting with Future Exog. History: {len(hist_df)}, Future: {len(futr_df)}")
+            logger.info(f"Predicting with Future Exog. History: {len(hist_df)}, Future: {len(futr_df)}")
             forecast = model.predict(df=hist_df, futr_df=futr_df)
         else:
             # Standard prediction
@@ -88,7 +121,7 @@ async def predict(request: Request):
         return {"predictions": forecast.to_dict(orient="records")}
         
     except Exception as e:
-        print(f"Prediction error: {e}")
+        logger.error(f"Prediction error: {e}")
         return {"error": str(e)}
 
 if __name__ == "__main__":
