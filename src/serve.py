@@ -31,36 +31,17 @@ def load_model():
     
     logger.info(f"Base model path from env: {base_path}")
     
-    # 1. Find the actual directory containing the model files
-    # We look for 'NHITS_0.ckpt' or 'dataset.pkl' which are characteristic of NeuralForecast models
+    # 1. Use the base path directly, but list contents for debugging
     actual_model_path = base_path
-    found = False
     
     if base_path.startswith("gs://"):
-        import gcsfs
-        fs = gcsfs.GCSFileSystem()
         try:
-            # List files recursively
+            import gcsfs
+            fs = gcsfs.GCSFileSystem()
             logger.info(f"Listing contents of GCS path: {base_path}")
-            # glob returns full paths
-            files = fs.glob(f"{base_path}/**")
-            for full_path in files:
-                logger.info(f"Found file: {full_path}")
-                file_name = os.path.basename(full_path)
-                
-                if file_name == "NHITS_0.ckpt" or file_name == "dataset.pkl":
-                    if not found:
-                        # Get parent directory
-                        # fs.glob returns path without gs:// prefix usually, but let's be careful
-                        # We need to reconstruct the gs:// URI for the directory
-                        parent_dir = os.path.dirname(full_path)
-                        if not parent_dir.startswith("gs://"):
-                            actual_model_path = f"gs://{parent_dir}"
-                        else:
-                            actual_model_path = parent_dir
-                            
-                        found = True
-                        logger.info(f"✅ Detected model directory at: {actual_model_path}")
+            files = fs.ls(base_path)
+            for f in files:
+                logger.info(f"Found file: {f}")
         except Exception as e:
             logger.error(f"Error listing GCS files: {e}")
             
@@ -70,13 +51,6 @@ def load_model():
             for file in files:
                 full_path = os.path.join(root, file)
                 logger.info(f"Found file: {full_path}")
-                
-                # Heuristic: If we find the checkpoint file, the parent dir is likely the model dir
-                if file == "NHITS_0.ckpt" or file == "dataset.pkl":
-                    if not found: # Use the first one found
-                        actual_model_path = root
-                        found = True
-                        logger.info(f"✅ Detected model directory at: {actual_model_path}")
     else:
         logger.error(f"Base path {base_path} does not exist!")
 
