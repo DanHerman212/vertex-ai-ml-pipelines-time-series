@@ -130,8 +130,10 @@ gcloud compute ssh $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
     # Set logging level to INFO to see the output
     export PYTHONLOGLEVEL=info
     
+    # Explicitly disable Prism runner fallback which causes issues with PubSub
     python3 -m streaming.pipeline \
         --runner=DirectRunner \
+        --direct_runner_use_stacked_bundle_processing=False \
         --project_id=$PROJECT_ID \
         --region=us-east1 \
         --endpoint_id=$ENDPOINT_ID \
