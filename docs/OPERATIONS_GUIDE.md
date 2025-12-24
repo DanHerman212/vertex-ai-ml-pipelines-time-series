@@ -6,6 +6,21 @@ This guide details the operational procedures for training, testing, and deployi
 
 Ensure your environment is configured correctly before running any commands.
 
+### System Dependencies (Debian/Ubuntu)
+If running on a fresh Linux environment (like Cloud Shell or a GCE VM), ensure you have the virtual environment package installed:
+```bash
+sudo apt-get update
+sudo apt-get install -y python3-venv
+```
+
+### Python Environment
+Always run commands within a virtual environment to avoid system package conflicts:
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements/requirements.txt
+```
+
 ### Environment Variables
 Create a `.env` file in the root directory (copy from `.env.example`):
 ```bash
