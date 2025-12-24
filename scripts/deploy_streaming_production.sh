@@ -27,7 +27,7 @@ if [ ! -f setup.py ]; then
 fi
 
 # Run as a module to ensure imports work correctly
-# Added --prebuild_sdk_container_engine=cloud_build to speed up worker startup
+# Removed --prebuild_sdk_container_engine=cloud_build to avoid build errors
 python3 -m streaming.pipeline \
     --runner=DataflowRunner \
     --project=$PROJECT_ID \
@@ -36,7 +36,6 @@ python3 -m streaming.pipeline \
     --staging_location=gs://$BUCKET_NAME/staging \
     --job_name=$JOB_NAME \
     --setup_file=./setup.py \
-    --prebuild_sdk_container_engine=cloud_build \
     --input_subscription=projects/$PROJECT_ID/subscriptions/$SUBSCRIPTION_ID \
     --endpoint_id=$ENDPOINT_ID \
     --project_id=$PROJECT_ID \
