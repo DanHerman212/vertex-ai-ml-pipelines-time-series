@@ -5,7 +5,7 @@
 </p>
 
 ## Project Topics
-- [Architecture Overview](#architecture-overview)
+- [Architecture Overview](docs/ARCHITECTURE_OVERVIEW.md)
 - [Operations Guide](docs/OPERATIONS_GUIDE.md)
 
 ## Project Overview
