@@ -47,7 +47,45 @@ class WriteToFirestore(beam.DoFn):
             # e.g., "E_F11S_1760369207"
             doc_id = f"{key}_{last_ts}"
             
+            # Structure the data for Firestore
+            # We want to store the forecast as a structured object, not just a raw list
+            # The forecast is a list of dicts: [{'ds': '...', 'NHITS-median': ...}, ...]
+            
+            # Take the first prediction (median) as the primary value
+            # But store the full forecast array for detailed plotting
+            
+            primary_prediction = 0.0
+            if forecast and isinstance(forecast, list) and len(forecast) > 0:
+                # Handle both list of floats (old format) and list of dicts (new format)
+                first_item = forecast[0]
+                if isinstance(first_item, dict):
+                    primary_prediction = first_item.get('NHITS-median', 0.0)
+                elif isinstance(first_item, (int, float)):
+                    primary_prediction = float(first_item)
+
+            firestore_data = {
+                'route_id': key.split('_')[0],
+                'stop_id': key.split('_')[1] if '_' in key else 'UNKNOWN',
+                'timestamp': last_ts,
+                'timestamp_str': datetime.fromtimestamp(last_ts).isoformat(),
+                'predicted_mbt': primary_prediction,
+                'forecast_details': forecast, # Store the full list of dicts
+                'status': element.get('prediction_status', 'UNKNOWN'),
+                'created_at': firestore.SERVER_TIMESTAMP
+            }
+            
             doc_ref = self.client.collection(self.collection_name).document(doc_id)
+            doc_ref.set(firestore_data)
+            
+            logging.info(f"✅ Written to Firestore: {doc_id} | MBT: {primary_prediction:.2f}")
+            
+        except Exception as e:
+            # Check for "database not found" error specifically
+            error_str = str(e)
+            if "404" in error_str and "database" in error_str:
+                 logging.error(f"🔥 FIRESTORE ERROR: Database not found. Please create a Firestore database in 'Native Mode' for project {self.project_id}.")
+            else:
+                logging.error(f"Error writing to Firestore for {element.get('key')}: {e}")
             
             # Prepare data for Firestore
             # We store the raw forecast plus metadata
