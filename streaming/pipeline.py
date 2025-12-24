@@ -51,6 +51,14 @@ def run(argv=None):
         help='If set, skips Firestore write but performs Vertex AI prediction.')
     
     known_args, pipeline_args = parser.parse_known_args(argv)
+    
+    # We need to explicitly set the project and region in the GoogleCloudOptions
+    # because DataflowRunner looks for them there, not just in our custom args.
+    pipeline_args.extend([
+        f'--project={known_args.project_id}',
+        f'--region={known_args.region}',
+    ])
+    
     pipeline_options = PipelineOptions(pipeline_args)
     pipeline_options.view_as(beam.options.pipeline_options.StandardOptions).streaming = True
 
