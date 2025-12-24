@@ -38,7 +38,7 @@ def analyze_predictions(project_id, collection='predictions', limit=50):
         return
 
     # Create DataFrame
-    df = pd.read_json(pd.io.json.dumps(data)) # Handle timestamp objects if any
+    df = pd.DataFrame(data)
     
     print("\n📊 Recent Predictions:")
     print(df[['time', 'route', 'stop', 'pred_mbt', 'status']].to_string(index=False))
