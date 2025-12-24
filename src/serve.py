@@ -1,6 +1,7 @@
 import os
 import uvicorn
 import logging
+import torch
 from fastapi import FastAPI, Request
 import pandas as pd
 from neuralforecast import NeuralForecast
@@ -79,6 +80,26 @@ def load_model():
                 if 'logger' in m.trainer_kwargs:
                     logger.info(f"Disabling logger in trainer_kwargs for model {i}")
                     m.trainer_kwargs['logger'] = None
+            
+            # Force CPU execution if no GPU is present
+            if not torch.cuda.is_available():
+                logger.info(f"No GPU detected. Forcing model {i} to use CPU.")
+                
+                # 1. Update direct attribute
+                if hasattr(m, 'accelerator'):
+                    m.accelerator = "cpu"
+                
+                # 2. Update trainer_kwargs (used for re-creating Trainer)
+                if hasattr(m, 'trainer_kwargs') and isinstance(m.trainer_kwargs, dict):
+                    logger.info(f"Overriding accelerator in trainer_kwargs to 'cpu' for model {i}")
+                    m.trainer_kwargs['accelerator'] = "cpu"
+                    m.trainer_kwargs['devices'] = 1
+                    
+                # 3. Update hparams (used for saving/loading)
+                if hasattr(m, 'hparams') and hasattr(m.hparams, 'accelerator'):
+                    m.hparams.accelerator = "cpu"
+                elif hasattr(m, 'hparams') and isinstance(m.hparams, dict) and 'accelerator' in m.hparams:
+                    m.hparams['accelerator'] = "cpu"
                     
         logger.info("Model loaded successfully.")
     except Exception as e:
