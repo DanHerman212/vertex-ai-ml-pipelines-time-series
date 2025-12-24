@@ -26,7 +26,8 @@ if [ ! -f setup.py ]; then
     exit 1
 fi
 
-python3 streaming/pipeline.py \
+# Run as a module to ensure imports work correctly
+python3 -m streaming.pipeline \
     --runner=DataflowRunner \
     --project=$PROJECT_ID \
     --region=$REGION \
