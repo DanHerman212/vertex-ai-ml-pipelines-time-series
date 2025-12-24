@@ -19,10 +19,22 @@ flowchart TD
     end
 
     subgraph Streaming ["Streaming Processing (Dataflow)"]
-        Beam["Apache Beam Pipeline"]
-        Window["Windowing & Aggregation"]
-        Transform["Feature Engineering"]
-        AsyncReq["Async Inference Requests"]
+        direction TB
+        
+        subgraph Transform ["Transformation (transform.py)"]
+            Parse["ParseVehicleUpdates"]
+            CalcDur["CalculateTripDuration"]
+            Accum["AccumulateArrivals"]
+        end
+        
+        subgraph PredictionPrep ["Prediction Logic (prediction.py)"]
+            CalcMBT["Calculate MBT"]
+            Padding["Padding (Ensure 160 rows)"]
+            FeatEng["Feature Engineering (Rolling Stats)"]
+            FutureRow["Append Future Row"]
+            Exog["Add Weather/Calendar Features"]
+            CallEndpoint["Call Vertex AI Endpoint"]
+        end
     end
 
     subgraph Inference ["Inference Layer (Vertex AI)"]
@@ -38,17 +50,25 @@ flowchart TD
 
     MTA -->|"Polled every 30s"| Ingest
     Ingest -->|"Protobuf -> JSON"| PubSub
-    PubSub -->|"Streaming Read"| Beam
-    Beam --> Window
-    Window --> Transform
-    Transform -->|"Batch Request"| AsyncReq
-    AsyncReq -->|"HTTP POST"| Endpoint
+    PubSub -->|"Streaming Read"| Parse
+    Parse -->|"Trip Updates"| CalcDur
+    CalcDur -->|"Durations"| Accum
+    Accum -->|"Windowed History"| CalcMBT
+    
+    CalcMBT --> Padding
+    Padding --> FeatEng
+    FeatEng --> FutureRow
+    FutureRow --> Exog
+    Exog -->|"Request Payload"| CallEndpoint
+    
+    CallEndpoint -->|"HTTP POST"| Endpoint
     Endpoint --> Container
     Container -->|"Inference"| Model
     Model -->|"Predictions"| Container
-    Container -->|"Response"| AsyncReq
-    AsyncReq -->|"Write"| Firestore
+    Container -->|"Response"| CallEndpoint
+    CallEndpoint -->|"Write"| Firestore
     Firestore --> App
+
 ```
 
 ---

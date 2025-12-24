@@ -43,16 +43,16 @@ make deploy
 *   **What it does**: Builds Docker images, compiles the Kubeflow pipeline, and submits a job to Vertex AI Pipelines.
 *   **Duration**: ~15-20 minutes (depending on training epochs).
 
-### Deploy to Endpoint (Manual Step)
-Once the pipeline completes successfully:
-1.  Go to **Vertex AI Model Registry**.
-2.  Select `nhits-model-v1`.
-3.  Click on the new version created by the pipeline.
-4.  Click **Deploy to Endpoint**.
-    *   **Endpoint**: Create new or select existing.
-    *   **Machine Type**: `n1-standard-2` (CPU) is sufficient.
-    *   **Traffic Split**: 100%.
-5.  **Important**: Copy the new **Endpoint ID** and update `ENDPOINT_ID` in your `.env` file.
+### Deploy to Endpoint (Automated)
+The pipeline now automatically creates an endpoint and deploys the model.
+
+**Post-Deployment Step:**
+1.  Go to **Vertex AI Endpoints** in the Google Cloud Console.
+2.  Find the newly created endpoint named `nhits-endpoint`.
+3.  **Important**: Copy the **Endpoint ID** and update `ENDPOINT_ID` in your `.env` file.
+    ```bash
+    ENDPOINT_ID=1234567890123456789
+    ```
 
 ---
 

@@ -67,29 +67,30 @@ else
 fi
 
 # 4. Delete Vertex AI Endpoint (if ENDPOINT_ID is set)
-if [ -n "$ENDPOINT_ID" ]; then
-    echo "Checking Vertex AI Endpoint $ENDPOINT_ID..."
-    if gcloud ai endpoints describe $ENDPOINT_ID --project=$PROJECT_ID --region=$REGION > /dev/null 2>&1; then
-        echo "Undeploying models from endpoint..."
-        # Get list of deployed model IDs
-        DEPLOYED_MODELS=$(gcloud ai endpoints describe $ENDPOINT_ID --project=$PROJECT_ID --region=$REGION --format="value(deployedModels.id)")
-        
-        for MODEL_ID in $DEPLOYED_MODELS; do
-            if [ -n "$MODEL_ID" ]; then
-                echo "Undeploying model $MODEL_ID..."
-                gcloud ai endpoints undeploy-model $ENDPOINT_ID --project=$PROJECT_ID --region=$REGION --deployed-model-id=$MODEL_ID --quiet
-            fi
-        done
-        
-        echo "Deleting endpoint $ENDPOINT_ID..."
-        gcloud ai endpoints delete $ENDPOINT_ID --project=$PROJECT_ID --region=$REGION --quiet
-        echo "Endpoint deleted."
-    else
-        echo "Endpoint $ENDPOINT_ID not found, skipping."
-    fi
-else
-    echo "ENDPOINT_ID not set in .env, skipping Vertex AI cleanup."
-fi
+# Commented out to prevent accidental deletion of production endpoint
+# if [ -n "$ENDPOINT_ID" ]; then
+#     echo "Checking Vertex AI Endpoint $ENDPOINT_ID..."
+#     if gcloud ai endpoints describe $ENDPOINT_ID --project=$PROJECT_ID --region=$REGION > /dev/null 2>&1; then
+#         echo "Undeploying models from endpoint..."
+#         # Get list of deployed model IDs
+#         DEPLOYED_MODELS=$(gcloud ai endpoints describe $ENDPOINT_ID --project=$PROJECT_ID --region=$REGION --format="value(deployedModels.id)")
+#         
+#         for MODEL_ID in $DEPLOYED_MODELS; do
+#             if [ -n "$MODEL_ID" ]; then
+#                 echo "Undeploying model $MODEL_ID..."
+#                 gcloud ai endpoints undeploy-model $ENDPOINT_ID --project=$PROJECT_ID --region=$REGION --deployed-model-id=$MODEL_ID --quiet
+#             fi
+#         done
+#         
+#         echo "Deleting endpoint $ENDPOINT_ID..."
+#         gcloud ai endpoints delete $ENDPOINT_ID --project=$PROJECT_ID --region=$REGION --quiet
+#         echo "Endpoint deleted."
+#     else
+#         echo "Endpoint $ENDPOINT_ID not found, skipping."
+#     fi
+# else
+#     echo "ENDPOINT_ID not set in .env, skipping Vertex AI cleanup."
+# fi
 
 # 5. Cancel Dataflow Jobs
 echo "Checking for running Dataflow jobs..."

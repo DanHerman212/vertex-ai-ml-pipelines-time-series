@@ -10,6 +10,7 @@ from kfp.dsl import (
 )
 from google_cloud_pipeline_components.types import artifact_types
 from google_cloud_pipeline_components.v1.model import ModelUploadOp
+from google_cloud_pipeline_components.v1.endpoint import EndpointCreateOp, ModelDeployOp
 import os
 
 # Get image URI from environment variable (injected by deploy script)
@@ -258,6 +259,23 @@ def forecasting_pipeline(
     evaluate_nhits_task.set_memory_limit('32G')
     evaluate_nhits_task.set_gpu_limit(1)
     evaluate_nhits_task.set_accelerator_type('NVIDIA_TESLA_T4')
+
+    # Step 7: Create Endpoint
+    endpoint_create_task = EndpointCreateOp(
+        project=project_id,
+        location=region,
+        display_name="nhits-endpoint",
+    )
+
+    # Step 8: Deploy N-HiTS Model to Endpoint
+    model_deploy_task = ModelDeployOp(
+        endpoint=endpoint_create_task.outputs["endpoint"],
+        model=nhits_model_upload_task.outputs["model"],
+        deployed_model_display_name="nhits-deployed",
+        dedicated_resources_machine_type="n1-standard-2",
+        dedicated_resources_min_replica_count=1,
+        dedicated_resources_max_replica_count=1,
+    )
 
 if __name__ == "__main__":
     compiler.Compiler().compile(
